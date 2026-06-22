@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicSilicon Playground | SystemVerilog Simulator</title>
+    <link rel="icon" type="image/svg+xml" href="favicon1.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            panel: '#18181b',
+                            editor: '#1e1e1e',
+                            terminal: '#0d0d0d',
+                            border: '#27272a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+        .view { display: none; flex-direction: row; flex: 1; height: 100%; }
+        .view.active { display: flex; }
+        
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; border: 2px solid #ffffff; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .dark ::-webkit-scrollbar-thumb { background: #475569; border: 2px solid #1e1e1e;}
+        .dark ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+        
+        .loader { border: 3px solid transparent; border-top: 3px solid currentColor; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Sleek Invisible Resizers */
+        .resizer-h { width: 4px; cursor: col-resize; z-index: 10; background-color: transparent; position: relative;}
+        .resizer-h::after { content: ''; position: absolute; top: 0; bottom: 0; left: 1px; right: 1px; background-color: #e2e8f0; transition: background-color 0.2s ease;}
+        .dark .resizer-h::after { background-color: #334155; }
+        .resizer-h:hover::after, .resizer-h.active::after { background-color: #6366f1; }
+
+        .resizer-v { height: 4px; cursor: row-resize; z-index: 10; background-color: transparent; position: relative;}
+        .resizer-v::after { content: ''; position: absolute; top: 1px; bottom: 1px; left: 0; right: 0; background-color: #e2e8f0; transition: background-color 0.2s ease;}
+        .dark .resizer-v::after { background-color: #334155; }
+        .resizer-v:hover::after, .resizer-v.active::after { background-color: #6366f1; }
+        
+        .monaco-editor .margin { background-color: transparent !important; }
+
+        .fade-transition { transition: opacity 0.5s ease-in-out; }
+        
+        .bg-dot-grid {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .code-font { font-family: 'Fira Code', monospace; }
+    </style>
+</head>
+<body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200">
+
+    <!-- 1. LOGIN VIEW (FULLSCREEN HERO WITH FLOATING RIGHT CARD) -->
+    <div id="login-view" class="view active h-full w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
+        
+        <!-- Fullscreen Background Elements -->
+        <div class="absolute inset-0 bg-dot-grid"></div>
+        
+        <!-- Glowing Orbs -->
+        <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
+        <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <!-- Theme Toggle on Login Page (Frosted Glass) -->
+        <button onclick="toggleTheme()" class="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/5 backdrop-blur-md transition-all shadow-lg z-50" title="Toggle Theme">
+            <svg id="icon-sun-login" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+            <svg id="icon-moon-login" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </button>
+
+        <!-- Content Container -->
+        <div class="relative z-10 w-full min-h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-center justify-center lg:justify-between px-6 lg:px-12 py-10 lg:py-6">
+            
+            <!-- LEFT SIDE: Dynamic Minimalist Hero -->
+            <div class="hidden lg:flex flex-col justify-center w-1/2 pr-10 pointer-events-none">
+                <div class="flex items-center gap-3 text-white mb-10 lg:mb-12">
+                    <div class="w-10 h-10 bg-indigo-500 text-white rounded-[10px] flex items-center justify-center font-bold text-lg shadow-lg">LS</div>
+                    <span class="font-semibold text-2xl tracking-tight">LogicSilicon</span>
+                </div>
+                
+                <h1 id="hero-title" class="text-4xl xl:text-[46px] font-semibold text-white leading-[1.15] mb-3 tracking-tight fade-transition">
+                    Enterprise-Grade<br/>SystemVerilog Simulation.
+                </h1>
+                <p id="hero-desc" class="text-slate-400 text-lg font-normal max-w-md leading-relaxed fade-transition">
+                    A professional, zero-setup verification environment built for hardware engineers and academic institutions.
+                </p>
+
+                <!-- Sleek Editor Mockup -->
+                <div class="w-full max-w-[480px] mt-8 fade-transition">
+                    <div class="rounded-xl overflow-hidden bg-[#1e1e1e] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+                        <div class="bg-[#252526] px-4 py-3 flex items-center gap-4 border-b border-white/5">
+                            <div class="flex gap-2">
+                                <div class="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                                <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
+                            </div>
+                            <span id="hero-filename" class="text-[#858585] text-xs code-font">design.sv</span>
+                        </div>
+                        <div id="hero-code" class="p-5 code-font text-[13px] leading-[1.6] text-[#d4d4d4] overflow-hidden h-[210px]">
+                            <span style="color:#569cd6">module</span> top_module(<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> clk,<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> reset,<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] count<br/>
+                            );<br/><br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6a9955">// IEEE 1800-2012 Engine Active</span><br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_ff</span> @(<span style="color:#569cd6">posedge</span> clk) <span style="color:#569cd6">begin</span><br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">if</span> (reset) count &lt;= <span style="color:#b5cea8">0</span>;<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">else</span> count &lt;= count + <span style="color:#b5cea8">1</span>;<br/>
+                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/>
+                            <span style="color:#569cd6">endmodule</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex items-center justify-between max-w-[480px]">
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Secure Cloud Infrastructure</div>
+                    <div class="flex gap-2">
+                        <div id="dot-0" class="w-6 h-1 rounded-full bg-indigo-500 transition-all duration-500"></div>
+                        <div id="dot-1" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
+                        <div id="dot-2" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE: Floating Login Card -->
+            <div class="w-full lg:w-[460px] flex items-center justify-center z-20">
+                <div class="bg-white dark:bg-slate-800 p-8 sm:p-10 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] w-full flex flex-col transition-colors">
+                    
+                    <!-- Mobile Logo -->
+                    <div class="lg:hidden flex justify-center items-center gap-3 mb-8">
+                        <div class="w-12 h-12 bg-indigo-500 text-white rounded-[14px] flex items-center justify-center font-black text-2xl shadow-lg">LS</div>
+                        <span class="font-extrabold text-3xl tracking-tight text-slate-900 dark:text-white">LogicSilicon</span>
+                    </div>
+
+                    <h2 class="text-[28px] font-extrabold text-slate-900 dark:text-white mb-1 transition-colors tracking-tight">Welcome Back</h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-[15px] mb-6 font-medium transition-colors">Sign in to access your simulation workspace.</p>
+
+                    <div id="login-error" class="hidden bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/50 text-red-600 dark:text-red-400 p-3.5 rounded-xl mb-4 text-sm font-medium transition-colors flex items-start gap-3">
+                        <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span id="login-error-text"></span>
+                    </div>
+
+                    <form onsubmit="handleLogin(event)">
+                        <div class="mb-4">
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider transition-colors">Email Address</label>
+                            <input type="email" id="user-email" class="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="name@domain.com" required>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider transition-colors">Access Token / Password</label>
+                            <input type="password" id="user-auth" class="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" id="btn-login" class="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/30 flex justify-center items-center gap-2">
+                            Access Simulator
+                        </button>
+                    </form>
+
+                    <p class="mt-6 text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic uppercase tracking-widest text-center transition-colors">
+                        Auto-Role Detection Active
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 2. SIMULATOR VIEW (IDE) -->
+    <div id="simulator-view" class="view flex-col bg-white dark:bg-dark-bg transition-colors h-screen w-full">
+        
+        <nav class="h-14 bg-white dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-center justify-between px-4 shrink-0 z-20 transition-colors">
+            <div class="flex items-center gap-5">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg flex items-center justify-center font-bold text-[13px] shadow-sm">LS</div>
+                    <span class="font-bold text-sm text-slate-800 dark:text-slate-200 transition-colors hidden sm:block">Playground</span>
+                </div>
+                
+                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="triggerUpload()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span class="hidden sm:inline">Upload</span>
+                    </button>
+                    <input type="file" id="file-upload" accept=".v,.sv,.txt" class="hidden" onchange="handleFileUpload(event)">
+
+                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span class="hidden sm:inline">Save</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 sm:gap-5">
+                <div class="hidden md:flex items-center gap-2 bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                    <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium transition-colors tracking-wide" id="nav-user-email">user@domain.com</span>
+                </div>
+
+                <button onclick="toggleTheme()" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Theme">
+                    <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+                
+                <button onclick="runSimulation()" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
+                    Run Code
+                </button>
+
+                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+
+                <button onclick="logout()" class="text-[13px] text-slate-500 hover:text-red-500 dark:hover:text-red-400 font-semibold transition-colors">Exit</button>
+            </div>
+        </nav>
+
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+            <!-- TOP SECTION: Editors Side-by-Side -->
+            <div id="top-section" class="flex-1 flex flex-row min-h-0 bg-white dark:bg-dark-editor transition-colors">
+                <!-- DESIGN PANE -->
+                <div id="design-pane" class="flex flex-col h-full min-w-0" style="width: 50%;">
+                    <div class="h-10 bg-[#f1f5f9] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-end px-2 shrink-0 transition-colors pt-2">
+                        <div class="px-4 py-2 bg-white dark:bg-[#1e1e1e] border border-b-0 border-slate-200 dark:border-[#27272a] rounded-t-md flex items-center gap-2 z-10 relative -mb-[1px]">
+                            <svg class="w-3.5 h-3.5 text-[#0ea5e9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <span class="font-medium text-[13px] text-slate-700 dark:text-slate-300 font-mono tracking-tight">design.sv</span>
+                        </div>
+                    </div>
+                    <div id="monaco-design" class="flex-1 w-full min-h-0"></div>
+                </div>
+
+                <div id="h-resizer" class="resizer-h bg-slate-100 dark:bg-[#18181b] transition-colors border-x border-slate-200 dark:border-transparent"></div>
+
+                <!-- TESTBENCH PANE -->
+                <div id="tb-pane" class="flex-1 flex flex-col h-full min-w-0">
+                    <div class="h-10 bg-[#f1f5f9] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-end px-2 shrink-0 transition-colors pt-2">
+                        <div class="px-4 py-2 bg-white dark:bg-[#1e1e1e] border border-b-0 border-slate-200 dark:border-[#27272a] rounded-t-md flex items-center gap-2 z-10 relative -mb-[1px]">
+                            <svg class="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <span class="font-medium text-[13px] text-slate-700 dark:text-slate-300 font-mono tracking-tight">testbench.sv</span>
+                        </div>
+                    </div>
+                    <div id="monaco-tb" class="flex-1 w-full min-h-0"></div>
+                </div>
+            </div>
+
+            <div id="v-resizer" class="resizer-v bg-slate-100 dark:bg-[#18181b] transition-colors border-y border-slate-200 dark:border-transparent"></div>
+
+            <!-- BOTTOM SECTION: Terminal -->
+            <div id="terminal-section" class="h-[35%] flex flex-col min-h-0 bg-white dark:bg-dark-terminal transition-colors">
+                
+                <div class="h-10 bg-[#f8fafc] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-center px-4 justify-between shrink-0 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <span class="font-semibold text-[11px] text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Terminal Output
+                        </span>
+                        <div class="hidden sm:block h-3 w-px bg-slate-300 dark:bg-slate-700"></div>
+                        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-500 font-mono">
+                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> System Idle
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- View Waveform Button -->
+                        <button id="btn-waveform" onclick="openWaveformViewer()" class="hidden flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors uppercase tracking-widest bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1 rounded border border-indigo-200 dark:border-indigo-500/20">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h4l3-9 5 18 3-9h4"></path></svg>
+                            Waveform (.VCD)
+                        </button>
+                        
+                        <button onclick="clearTerminal()" class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest bg-slate-200/50 dark:bg-slate-800 px-3 py-1 rounded">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 p-5 overflow-y-auto code-font text-[13.5px] leading-relaxed whitespace-pre-wrap text-slate-800 dark:text-slate-300 transition-colors selection:bg-indigo-200 dark:selection:bg-indigo-900" id="terminal-output">
+<span class="text-slate-500 dark:text-slate-500">Welcome to LogicSilicon Playground.
+SystemVerilog (IEEE 1800-2012) Engine ready.
+Write your design and testbench, then click 'Run Code'.</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // CONFIGURATION & STATE
+        // =========================================================
+        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzhtk4rISUDJvMb3nLzJq2CBY5cVnm9kAnL_fuW77MLOkoR0-_dS0nKtmCwBjpD3mpAnQ/exec"; 
+        const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; 
+
+        let currentUser = null;
+        let editorDesign = null;
+        let editorTb = null;
+        let isDarkMode = false;
+        
+        let codeData = {
+            design: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule",
+            tb: "module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule"
+        };
+
+        const heroSlides = [
+            {
+                title: "Enterprise-Grade<br/>SystemVerilog Simulation.",
+                desc: "A professional, zero-setup verification environment built for hardware engineers and academic institutions.",
+                filename: "design.sv",
+                code: `<span style="color:#569cd6">module</span> top_module(<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> clk,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> reset,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] count<br/>);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6a9955">// IEEE 1800-2012 Engine Active</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_ff</span> @(<span style="color:#569cd6">posedge</span> clk) <span style="color:#569cd6">begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">if</span> (reset) count &lt;= <span style="color:#b5cea8">0</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">else</span> count &lt;= count + <span style="color:#b5cea8">1</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+            },
+            {
+                title: "Compile & Simulate<br/>with Zero Overhead.",
+                desc: "Write complex combinational logic and run testbenches instantly without local software installations.",
+                filename: "alu.sv",
+                code: `<span style="color:#569cd6">module</span> alu_32bit(<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> [<span style="color:#b5cea8">31</span>:<span style="color:#b5cea8">0</span>] a, b,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> [<span style="color:#b5cea8">1</span>:<span style="color:#b5cea8">0</span>] op,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">31</span>:<span style="color:#b5cea8">0</span>] result<br/>);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_comb begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">case</span>(op)<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b00</span>: result = a + b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b01</span>: result = a - b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b10</span>: result = a & b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b11</span>: result = a | b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">endcase</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+            },
+            {
+                title: "Validate Hardware<br/>Directly in the Browser.",
+                desc: "Generate waveforms and monitor terminal outputs natively within a unified, dual-editor workspace.",
+                filename: "testbench.sv",
+                code: `<span style="color:#569cd6">module</span> tb();<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> clk, rst;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] q;<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;counter dut(.*);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">initial begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpfile</span>(<span style="color:#ce9178">"waves.vcd"</span>);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpvars</span>(<span style="color:#b5cea8">0</span>, tb);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clk = <span style="color:#b5cea8">0</span>; rst = <span style="color:#b5cea8">1</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#20</span> rst = <span style="color:#b5cea8">0</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#200</span> <span style="color:#dcdcaa">$finish</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+            }
+        ];
+
+        let currentHeroSlide = 0;
+
+        function cycleHeroContent() {
+            const titleEl = document.getElementById('hero-title');
+            const descEl = document.getElementById('hero-desc');
+            const fileEl = document.getElementById('hero-filename');
+            const codeEl = document.getElementById('hero-code');
+
+            if(!titleEl) return; 
+
+            titleEl.style.opacity = 0;
+            descEl.style.opacity = 0;
+            fileEl.style.opacity = 0;
+            codeEl.style.opacity = 0;
+
+            for (let i = 0; i < heroSlides.length; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if(dot) {
+                    if (i === ((currentHeroSlide + 1) % heroSlides.length)) {
+                        dot.className = "w-6 h-1 rounded-full bg-indigo-500 transition-all duration-500";
+                    } else {
+                        dot.className = "w-2 h-1 rounded-full bg-slate-700 transition-all duration-500";
+                    }
+                }
+            }
+
+            setTimeout(() => {
+                currentHeroSlide = (currentHeroSlide + 1) % heroSlides.length;
+                titleEl.innerHTML = heroSlides[currentHeroSlide].title;
+                descEl.innerHTML = heroSlides[currentHeroSlide].desc;
+                fileEl.innerHTML = heroSlides[currentHeroSlide].filename;
+                codeEl.innerHTML = heroSlides[currentHeroSlide].code;
+
+                titleEl.style.opacity = 1;
+                descEl.style.opacity = 1;
+                fileEl.style.opacity = 1;
+                codeEl.style.opacity = 1;
+            }, 500);
+        }
+
+        window.onload = () => {
+            setInterval(cycleHeroContent, 6000);
+
+            const savedTheme = localStorage.getItem('ls_theme');
+            if (savedTheme === 'dark') {
+                isDarkMode = true;
+                document.documentElement.classList.add('dark');
+                document.getElementById('icon-moon').classList.add('hidden');
+                document.getElementById('icon-sun').classList.remove('hidden');
+                if(document.getElementById('icon-moon-login')) {
+                    document.getElementById('icon-moon-login').classList.add('hidden');
+                    document.getElementById('icon-sun-login').classList.remove('hidden');
+                }
+            } else {
+                isDarkMode = false;
+                document.documentElement.classList.remove('dark');
+                document.getElementById('icon-sun').classList.add('hidden');
+                document.getElementById('icon-moon').classList.remove('hidden');
+                if(document.getElementById('icon-sun-login')) {
+                    document.getElementById('icon-sun-login').classList.add('hidden');
+                    document.getElementById('icon-moon-login').classList.remove('hidden');
+                }
+            }
+
+            const session = sessionStorage.getItem('ls_playground_user');
+            if(session) {
+                currentUser = JSON.parse(session);
+                showSimulator();
+            } else {
+                document.getElementById('login-view').classList.add('active');
+                document.getElementById('login-view').classList.remove('hidden');
+                document.getElementById('simulator-view').classList.remove('active');
+                document.getElementById('simulator-view').classList.add('hidden');
+            }
+            initResizers();
+        };
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('ls_theme', 'dark');
+                document.getElementById('icon-moon').classList.add('hidden');
+                document.getElementById('icon-sun').classList.remove('hidden');
+                if(document.getElementById('icon-moon-login')) {
+                    document.getElementById('icon-moon-login').classList.add('hidden');
+                    document.getElementById('icon-sun-login').classList.remove('hidden');
+                }
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('ls_theme', 'light');
+                document.getElementById('icon-sun').classList.add('hidden');
+                document.getElementById('icon-moon').classList.remove('hidden');
+                if(document.getElementById('icon-sun-login')) {
+                    document.getElementById('icon-sun-login').classList.add('hidden');
+                    document.getElementById('icon-moon-login').classList.remove('hidden');
+                }
+            }
+            
+            const monacoTheme = isDarkMode ? 'vs-dark' : 'vs';
+            if(editorDesign) monaco.editor.setTheme(monacoTheme);
+            if(editorTb) monaco.editor.setTheme(monacoTheme);
+        }
+
+        function showSimulator() {
+            document.getElementById('login-view').classList.remove('active');
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('simulator-view').classList.remove('hidden');
+            document.getElementById('simulator-view').classList.add('active');
+            document.getElementById('nav-user-email').innerText = currentUser.email;
+            
+            setTimeout(initMonaco, 100);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('user-email').value;
+            const authString = document.getElementById('user-auth').value;
+            const btn = document.getElementById('btn-login');
+            const errorDiv = document.getElementById('login-error');
+            const errorText = document.getElementById('login-error-text');
+            
+            btn.innerHTML = '<div class="loader mr-2 border-white/30 border-t-white"></div> Verifying...';
+            btn.disabled = true;
+            errorDiv.classList.add('hidden');
+
+            try {
+                let res = await fetch(GOOGLE_WEB_APP_URL, {
+                    method: 'POST', headers: {'Content-Type': 'text/plain'}, 
+                    body: JSON.stringify({ action: 'login', role: 'student', email, authString })
+                });
+                let data = await res.json();
+                
+                if (data.status === 'success') {
+                    currentUser = { email, id: authString, role: 'student' };
+                    sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
+                    showSimulator();
+                } else {
+                    res = await fetch(GOOGLE_WEB_APP_URL, {
+                        method: 'POST', headers: {'Content-Type': 'text/plain'}, 
+                        body: JSON.stringify({ action: 'login', role: 'admin', email, authString })
+                    });
+                    data = await res.json();
+                    
+                    if (data.status === 'success') {
+                        currentUser = { email, role: 'admin' };
+                        sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
+                        showSimulator();
+                    } else {
+                        errorText.innerText = "Invalid credentials. Please verify your access.";
+                        errorDiv.classList.remove('hidden');
+                    }
+                }
+            } catch(err) {
+                errorText.innerText = "Network error. Unable to reach authentication server.";
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = 'Access Simulator';
+                btn.disabled = false;
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('ls_playground_user');
+            sessionStorage.removeItem('ls_last_vcd');
+            currentUser = null;
+            document.getElementById('login-view').classList.add('active');
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('simulator-view').classList.remove('active');
+            document.getElementById('simulator-view').classList.add('hidden');
+            if (editorDesign) { editorDesign.dispose(); editorDesign = null; }
+            if (editorTb) { editorTb.dispose(); editorTb = null; }
+        }
+
+        function initMonaco() {
+            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+            require(['vs/editor/editor.main'], function() {
+                const commonConfig = {
+                    language: 'verilog',
+                    theme: isDarkMode ? 'vs-dark' : 'vs',
+                    automaticLayout: true,
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    fontFamily: "'Fira Code', Consolas, monospace",
+                    padding: { top: 16, bottom: 16 },
+                    scrollBeyondLastLine: false,
+                    smoothScrolling: true,
+                    renderLineHighlight: 'all',
+                    cursorBlinking: 'smooth',
+                    cursorSmoothCaretAnimation: true
+                };
+
+                if(editorDesign) editorDesign.dispose();
+                editorDesign = monaco.editor.create(document.getElementById('monaco-design'), {
+                    value: codeData.design,
+                    ...commonConfig
+                });
+
+                if(editorTb) editorTb.dispose();
+                editorTb = monaco.editor.create(document.getElementById('monaco-tb'), {
+                    value: codeData.tb,
+                    ...commonConfig
+                });
+            });
+        }
+
+        function downloadCode() {
+            if(editorDesign) codeData.design = editorDesign.getValue();
+            if(editorTb) codeData.tb = editorTb.getValue();
+            
+            const combinedCode = `// ==========================================
+// LOGICSILICON PLAYGROUND - SYSTEMVERILOG
+// ==========================================
+
+// --- DESIGN (design.sv) ---
+${codeData.design}
+
+// --- TESTBENCH (testbench.sv) ---
+${codeData.tb}
+`;
+            const blob = new Blob([combinedCode], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ls_project_${Date.now()}.sv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerUpload() {
+            document.getElementById('file-upload').click();
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const splitMarker = "// --- TESTBENCH (testbench.sv) ---";
+                const designMarker = "// --- DESIGN (design.sv) ---";
+
+                if (content.includes(splitMarker)) {
+                    let parts = content.split(splitMarker);
+                    let topPart = parts[0];
+                    let bottomPart = parts[1];
+                    if (topPart.includes(designMarker)) topPart = topPart.split(designMarker)[1];
+
+                    codeData.design = topPart.trim();
+                    codeData.tb = bottomPart.trim();
+                    
+                    if(editorDesign) editorDesign.setValue(codeData.design);
+                    if(editorTb) editorTb.setValue(codeData.tb);
+                    alert("Project loaded successfully. Design and Testbench were auto-split.");
+                } else {
+                    codeData.design = content;
+                    if(editorDesign) editorDesign.setValue(content);
+                    alert("File loaded into the Design tab.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
+        async function runSimulation() {
+            if(!editorDesign || !editorTb) return;
+            
+            const btn = document.getElementById('btn-run');
+            const output = document.getElementById('terminal-output');
+            const waveBtn = document.getElementById('btn-waveform');
+            
+            btn.innerHTML = '<div class="loader mr-2 border-white/30 border-t-white"></div> Compiling...';
+            btn.disabled = true;
+            waveBtn.classList.add('hidden'); 
+
+            const logColor = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
+            output.innerHTML = `<span class="${logColor}">Initiating SystemVerilog compilation pipeline...</span>\n`;
+
+            const payloadCode = editorDesign.getValue() + "\n\n" + editorTb.getValue();
+
+            try {
+                const res = await fetch(VERILOG_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: payloadCode })
+                });
+                
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    const successColor = isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
+                    output.innerHTML += `<span class="${successColor}">\n--- SIMULATION SUCCESS ---\n\n</span>`;
+                    const safeOutput = data.output.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    output.innerHTML += `<span>${safeOutput}</span>`;
+
+                    if (data.vcd) {
+                        sessionStorage.setItem('ls_last_vcd', data.vcd);
+                        waveBtn.classList.remove('hidden');
+                    }
+                } else {
+                    const errorColor = isDarkMode ? 'text-red-400' : 'text-red-600';
+                    output.innerHTML += `<span class="${errorColor}">\n--- COMPILATION/EXECUTION ERROR ---\n\n</span>`;
+                    const safeError = data.output.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    output.innerHTML += `<span class="${isDarkMode ? 'text-red-300' : 'text-red-500'}">${safeError}</span>`;
+                }
+            } catch (err) {
+                const netErrColor = isDarkMode ? 'text-red-500' : 'text-red-600';
+                output.innerHTML += `<span class="${netErrColor}">\n--- NETWORK ERROR ---\n</span>`;
+                output.innerHTML += `<span>Failed to connect to the LogicSilicon compilation server. Please try again later.</span>`;
+            } finally {
+                btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg> Run Code';
+                btn.disabled = false;
+            }
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-output').innerHTML = `<span class="text-slate-500 dark:text-slate-500 font-medium">Terminal cleared. Waiting for execution...</span>`;
+        }
+
+        function openWaveformViewer() {
+            window.open('waveform.html', '_blank');
+        }
+
+        function initResizers() {
+            const hResizer = document.getElementById('h-resizer');
+            const vResizer = document.getElementById('v-resizer');
+            const designPane = document.getElementById('design-pane');
+            const terminalSection = document.getElementById('terminal-section');
+            const topSection = document.getElementById('top-section');
+            
+            let isResizingH = false;
+            let isResizingV = false;
+
+            hResizer.addEventListener('mousedown', (e) => {
+                isResizingH = true; hResizer.classList.add('active'); document.body.style.cursor = 'col-resize';
+                if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'none';
+                if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'none';
+                e.preventDefault(); 
+            });
+
+            vResizer.addEventListener('mousedown', (e) => {
+                isResizingV = true; vResizer.classList.add('active'); document.body.style.cursor = 'row-resize';
+                if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'none';
+                if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'none';
+                e.preventDefault(); 
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isResizingH) {
+                    const containerWidth = topSection.clientWidth;
+                    let newWidth = (e.clientX / containerWidth) * 100;
+                    if (newWidth > 10 && newWidth < 90) designPane.style.width = `${newWidth}%`;
+                }
+                if (isResizingV) {
+                    const containerHeight = document.getElementById('simulator-view').clientHeight - 56;
+                    const newHeight = containerHeight - e.clientY + 56;
+                    if (newHeight > 40 && newHeight < containerHeight * 0.8) terminalSection.style.height = `${newHeight}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizingH || isResizingV) {
+                    isResizingH = false; isResizingV = false;
+                    hResizer.classList.remove('active'); vResizer.classList.remove('active');
+                    document.body.style.cursor = 'default';
+                    if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'auto';
+                    if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'auto';
+                    if (editorDesign) editorDesign.layout();
+                    if (editorTb) editorTb.layout();
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                if (editorDesign) editorDesign.layout();
+                if (editorTb) editorTb.layout();
+            });
+        }
+    </script>
+</body>
+</html>

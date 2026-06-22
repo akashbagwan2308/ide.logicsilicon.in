@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicSilicon WaveViewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            background-color: #0b1120; 
+            color: #f8fafc; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .code-font { font-family: 'Fira Code', monospace; }
+        
+        #viewer-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            border-top: 1px solid #1e293b;
+        }
+        
+        /* Left Sidebar (Signal Names) */
+        #signal-list {
+            width: 250px;
+            background-color: #0f172a;
+            border-right: 1px solid #1e293b;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        
+        .signal-header {
+            height: 30px;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .signal-item {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 13px;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Right Canvas Area */
+        #canvas-wrapper {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            background-color: #020617;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sync Scroll */
+        #signal-list-scroll {
+            overflow-y: hidden; 
+            flex: 1;
+        }
+
+        canvas {
+            display: block;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { height: 12px; width: 12px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; border: 2px solid #0f172a; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Toolbar -->
+    <header class="h-14 bg-[#0f172a] flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 bg-indigo-600 text-white rounded flex items-center justify-center font-bold text-sm shadow">LS</div>
+            <span class="font-bold text-[15px] tracking-tight">WaveViewer</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button onclick="zoom(1.5)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-slate-300 transition border border-slate-700 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                Zoom In
+            </button>
+            <button onclick="zoom(1/1.5)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-xs font-semibold text-slate-300 transition border border-slate-700 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
+                Zoom Out
+            </button>
+            <div class="h-4 w-px bg-slate-700 mx-2"></div>
+            <button onclick="window.close()" class="text-xs font-semibold text-slate-500 hover:text-white transition">Close</button>
+        </div>
+    </header>
+
+    <div id="error-msg" class="hidden m-auto text-center p-10 max-w-lg">
+        <div class="text-4xl mb-4">📭</div>
+        <h2 class="text-xl font-bold text-slate-200 mb-2">No Waveform Data Found</h2>
+        <p class="text-slate-400 text-sm">Please return to the LogicSilicon Simulator, write a testbench containing <code class="text-indigo-400 bg-indigo-900/30 px-1 py-0.5 rounded">$dumpfile("dump.vcd"); $dumpvars;</code>, and click 'Run' to generate a waveform.</p>
+    </div>
+
+    <!-- Main Viewer Area -->
+    <div id="viewer-container" class="hidden">
+        
+        <!-- Signal Names Sidebar -->
+        <div id="signal-list">
+            <div class="signal-header flex items-center px-4 shrink-0 text-[10px] font-bold text-slate-400 tracking-wider">
+                Signals
+            </div>
+            <div id="signal-list-scroll">
+                <div id="signal-names-container"></div>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div id="canvas-wrapper">
+            <canvas id="timeline-canvas" height="30" class="shrink-0 bg-[#0f172a] border-b border-[#1e293b] sticky top-0 z-10"></canvas>
+            <canvas id="wave-canvas"></canvas>
+        </div>
+        
+    </div>
+
+    <script>
+        // VCD Parser & Renderer State
+        let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
+        let scale = 10; // Pixels per time unit
+        const rowHeight = 40;
+        const waveHeight = 24;
+        const paddingY = (rowHeight - waveHeight) / 2;
+
+        window.onload = () => {
+            const vcdString = sessionStorage.getItem('ls_last_vcd');
+            if (!vcdString) {
+                document.getElementById('error-msg').classList.remove('hidden');
+            } else {
+                document.getElementById('viewer-container').classList.remove('hidden');
+                parseVCD(vcdString);
+                initRenderer();
+            }
+        };
+
+        // --- 1. LIGHTWEIGHT VCD PARSER ---
+        function parseVCD(vcd) {
+            const lines = vcd.split('\n');
+            let varsMap = {}; 
+            let currentScope = [];
+            let currentTime = 0;
+            let timescale = '';
+
+            // 1st Pass: Header & Variables
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('$timescale')) {
+                    timescale = lines[i+1].trim() + " " + lines[i+2].replace('$end', '').trim();
+                } else if (line.startsWith('$scope')) {
+                    const parts = line.split(' ');
+                    currentScope.push(parts[2]);
+                } else if (line.startsWith('$upscope')) {
+                    currentScope.pop();
+                } else if (line.startsWith('$var')) {
+                    const parts = line.split(' ');
+                    const type = parts[1];
+                    const size = parseInt(parts[2]);
+                    const id = parts[3];
+                    const name = parts[4];
+                    const fullName = currentScope.join('.') + '.' + name;
+                    
+                    varsMap[id] = { id, name: fullName, size, type, transitions: [] };
+                    parsedData.signals.push(varsMap[id]);
+                } else if (line.startsWith('$dumpvars') || line.startsWith('$enddefinitions')) {
+                    break; // Header done
+                }
+            }
+
+            // 2nd Pass: Time & Value Changes
+            let inDumpvars = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('$dumpvars')) { inDumpvars = true; continue; }
+                if (line.startsWith('$enddefinitions')) continue;
+
+                if (line.startsWith('#')) {
+                    currentTime = parseInt(line.substring(1));
+                } else if (line.match(/^[01xzXZ]/) && !line.startsWith('$')) {
+                    // Scalar or Vector change
+                    let valStr = '';
+                    let id = '';
+
+                    if (line.startsWith('b') || line.startsWith('B')) {
+                        // Vector (e.g. b1010 !)
+                        const parts = line.split(' ');
+                        valStr = parts[0].substring(1);
+                        id = parts[1];
+                    } else {
+                        // Scalar (e.g. 1!)
+                        valStr = line[0];
+                        id = line.substring(1).trim();
+                    }
+
+                    if (varsMap[id]) {
+                        varsMap[id].transitions.push({ time: currentTime, val: valStr });
+                    }
+                }
+            }
+
+            // Clean up missing initial values
+            parsedData.signals.forEach(sig => {
+                if (sig.transitions.length === 0 || sig.transitions[0].time !== 0) {
+                    sig.transitions.unshift({ time: 0, val: sig.size > 1 ? 'x' : 'x' });
+                }
+            });
+
+            parsedData.maxTime = currentTime > 0 ? currentTime + 10 : 100; // Add padding at the end
+            parsedData.timescale = timescale;
+            
+            // Auto-scale to fit roughly 80% of width on load
+            const containerWidth = document.getElementById('canvas-wrapper').clientWidth;
+            scale = Math.max(1, (containerWidth * 0.8) / parsedData.maxTime);
+        }
+
+        // --- 2. CANVAS RENDERER ---
+        const waveCanvas = document.getElementById('wave-canvas');
+        const timeCanvas = document.getElementById('timeline-canvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const timeCtx = timeCanvas.getContext('2d');
+        const wrapper = document.getElementById('canvas-wrapper');
+
+        function initRenderer() {
+            // Build Left Sidebar
+            const namesContainer = document.getElementById('signal-names-container');
+            namesContainer.innerHTML = '';
+            parsedData.signals.forEach(sig => {
+                const div = document.createElement('div');
+                div.className = 'signal-item code-font';
+                
+                // Truncate module names for cleaner look (e.g., tb.dut.clk -> clk)
+                const shortName = sig.name.split('.').pop();
+                
+                div.innerHTML = `<span class="text-slate-500 mr-2">[${sig.size}]</span> <span class="text-indigo-300" title="${sig.name}">${shortName}</span>`;
+                namesContainer.appendChild(div);
+            });
+
+            // Sync scrolling
+            wrapper.addEventListener('scroll', () => {
+                document.getElementById('signal-list-scroll').scrollTop = wrapper.scrollTop;
+            });
+
+            // Resize Observer
+            window.addEventListener('resize', draw);
+            draw();
+        }
+
+        function zoom(factor) {
+            scale *= factor;
+            if (scale < 0.1) scale = 0.1;
+            if (scale > 500) scale = 500;
+            draw();
+        }
+
+        function draw() {
+            const width = Math.max(wrapper.clientWidth, parsedData.maxTime * scale + 100);
+            const height = parsedData.signals.length * rowHeight;
+
+            waveCanvas.width = width;
+            waveCanvas.height = height;
+            timeCanvas.width = width;
+
+            drawTimeline(width);
+            drawWaveforms(width, height);
+        }
+
+        function drawTimeline(width) {
+            timeCtx.clearRect(0, 0, width, 30);
+            timeCtx.fillStyle = '#1e293b';
+            timeCtx.fillRect(0, 0, width, 30);
+            
+            timeCtx.fillStyle = '#cbd5e1';
+            timeCtx.font = '10px "Fira Code", monospace';
+            timeCtx.textAlign = 'center';
+            timeCtx.textBaseline = 'top';
+
+            // Calculate tick interval based on zoom scale
+            let tickInterval = 10;
+            if (scale < 1) tickInterval = 100;
+            if (scale < 0.1) tickInterval = 1000;
+            if (scale > 20) tickInterval = 2;
+
+            for (let t = 0; t <= parsedData.maxTime + tickInterval; t += tickInterval) {
+                const x = t * scale;
+                timeCtx.beginPath();
+                timeCtx.moveTo(x, 20);
+                timeCtx.lineTo(x, 30);
+                timeCtx.strokeStyle = '#475569';
+                timeCtx.stroke();
+                timeCtx.fillText(t.toString(), x, 5);
+            }
+        }
+
+        function drawWaveforms(width, height) {
+            waveCtx.clearRect(0, 0, width, height);
+            
+            // Draw horizontal grid lines
+            waveCtx.strokeStyle = '#1e293b';
+            waveCtx.lineWidth = 1;
+            for(let i = 0; i <= parsedData.signals.length; i++) {
+                waveCtx.beginPath();
+                waveCtx.moveTo(0, i * rowHeight);
+                waveCtx.lineTo(width, i * rowHeight);
+                waveCtx.stroke();
+            }
+
+            // Draw vertical tick lines
+            waveCtx.strokeStyle = '#1e293b';
+            let tickInterval = scale < 1 ? 100 : 10;
+            for (let t = 0; t <= parsedData.maxTime + tickInterval; t += tickInterval) {
+                const x = t * scale;
+                waveCtx.beginPath();
+                waveCtx.moveTo(x, 0);
+                waveCtx.lineTo(x, height);
+                waveCtx.stroke();
+            }
+
+            // Draw each signal
+            parsedData.signals.forEach((sig, index) => {
+                const yTop = index * rowHeight + paddingY;
+                const yBottom = yTop + waveHeight;
+                const yMid = yTop + waveHeight / 2;
+
+                waveCtx.lineWidth = 1.5;
+                waveCtx.font = '11px "Fira Code", monospace';
+                waveCtx.textAlign = 'center';
+                waveCtx.textBaseline = 'middle';
+
+                for (let i = 0; i < sig.transitions.length; i++) {
+                    const trans = sig.transitions[i];
+                    const nextTrans = sig.transitions[i+1];
+                    const xStart = trans.time * scale;
+                    const xEnd = nextTrans ? nextTrans.time * scale : parsedData.maxTime * scale + 50;
+                    
+                    const val = trans.val;
+
+                    if (sig.size === 1) {
+                        // 1-Bit Wire Logic
+                        let yLine;
+                        if (val === '1') { yLine = yTop; waveCtx.strokeStyle = '#10b981'; } // Green High
+                        else if (val === '0') { yLine = yBottom; waveCtx.strokeStyle = '#10b981'; } // Green Low
+                        else if (val.toLowerCase() === 'x') { yLine = yMid; waveCtx.strokeStyle = '#ef4444'; } // Red Unknown
+                        else { yLine = yMid; waveCtx.strokeStyle = '#eab308'; } // Amber HighZ
+
+                        waveCtx.beginPath();
+                        waveCtx.moveTo(xStart, yLine);
+                        waveCtx.lineTo(xEnd, yLine);
+                        waveCtx.stroke();
+
+                        // Draw vertical transition line if changing states
+                        if (i > 0) {
+                            const prevVal = sig.transitions[i-1].val;
+                            if (prevVal !== val) {
+                                let prevYLine = prevVal === '1' ? yTop : (prevVal === '0' ? yBottom : yMid);
+                                waveCtx.beginPath();
+                                waveCtx.moveTo(xStart, prevYLine);
+                                waveCtx.lineTo(xStart, yLine);
+                                waveCtx.stroke();
+                            }
+                        }
+                    } else {
+                        // Multi-Bit Bus Logic (Polygons)
+                        const isUnknown = val.toLowerCase().includes('x');
+                        waveCtx.strokeStyle = isUnknown ? '#ef4444' : '#3b82f6'; // Red if X, Blue if valid
+
+                        if (xEnd - xStart > 4) { // Enough space to draw a polygon
+                            waveCtx.beginPath();
+                            waveCtx.moveTo(xStart, yMid);
+                            waveCtx.lineTo(xStart + 3, yTop);
+                            waveCtx.lineTo(xEnd - 3, yTop);
+                            waveCtx.lineTo(xEnd, yMid);
+                            waveCtx.lineTo(xEnd - 3, yBottom);
+                            waveCtx.lineTo(xStart + 3, yBottom);
+                            waveCtx.closePath();
+                            waveCtx.stroke();
+
+                            // Draw Value Text if space permits
+                            if (xEnd - xStart > 20) {
+                                waveCtx.fillStyle = isUnknown ? '#ef4444' : '#cbd5e1';
+                                // Convert binary string to Hex for cleaner display (if purely binary)
+                                let displayVal = val;
+                                if (/^[01]+$/.test(val)) {
+                                    displayVal = 'h' + parseInt(val, 2).toString(16).toUpperCase();
+                                }
+                                waveCtx.fillText(displayVal, xStart + (xEnd - xStart)/2, yMid);
+                            }
+                        } else {
+                            // Too small, just draw a block
+                            waveCtx.beginPath();
+                            waveCtx.moveTo(xStart, yTop);
+                            waveCtx.lineTo(xEnd, yTop);
+                            waveCtx.moveTo(xStart, yBottom);
+                            waveCtx.lineTo(xEnd, yBottom);
+                            waveCtx.stroke();
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
