@@ -6,7 +6,6 @@
     <title>LogicSilicon WaveViewer Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" type="image/svg+xml" href="favicon1.svg">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -60,6 +59,7 @@
             background-color: #f1f5f9;
             border-bottom: 1px solid #e2e8f0;
             transition: background-color 0.2s, border-color 0.2s;
+            position: relative;
         }
         .dark .signal-header {
             background-color: #1e293b;
@@ -97,6 +97,25 @@
         .dark .signal-item.drag-over { border-top: 2px solid #6366f1; background-color: rgba(99, 102, 241, 0.1) !important; }
         .signal-item.dragging { opacity: 0.4; }
 
+        /* Sidebar Resizer */
+        #sidebar-resizer {
+            width: 4px;
+            cursor: col-resize;
+            background-color: transparent;
+            position: relative;
+            z-index: 30;
+        }
+        #sidebar-resizer::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 1px; right: 1px;
+            background-color: #e2e8f0;
+            transition: background-color 0.2s;
+        }
+        .dark #sidebar-resizer::after { background-color: #334155; }
+        #sidebar-resizer:hover::after, #sidebar-resizer.active::after { background-color: #4f46e5; }
+        .dark #sidebar-resizer:hover::after, .dark #sidebar-resizer.active::after { background-color: #6366f1; }
+
         .sig-name-container {
             display: flex;
             align-items: center;
@@ -128,6 +147,28 @@
         .dark .val-x { color: #ef4444; border-color: #dc2626; background: rgba(239, 68, 68, 0.1); }
         .dark .val-z { color: #eab308; border-color: #ca8a04; background: rgba(234, 179, 8, 0.1); }
         .dark .val-bus { color: #3b82f6; border-color: #2563eb; background: rgba(59, 130, 246, 0.1); }
+
+        .radix-btn {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 6px;
+            border-radius: 4px;
+            background-color: #e2e8f0;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .radix-btn:hover { background-color: #cbd5e1; color: #475569; }
+        .dark .radix-btn { background-color: #334155; color: #94a3b8; }
+        .dark .radix-btn:hover { background-color: #475569; color: #fff; }
+
+        .remove-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .signal-item:hover .remove-btn {
+            opacity: 1;
+        }
 
         /* Right Canvas Area */
         #canvas-wrapper {
@@ -178,7 +219,7 @@
         .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="bg-white text-slate-800 dark:bg-[#020617] dark:text-slate-100 transition-colors duration-200">
+<body class="bg-white text-slate-800 dark:bg-[#020617] dark:text-slate-100 transition-colors duration-200" onclick="hideAddSignalMenu()">
 
     <!-- Header Toolbar -->
     <header class="h-16 bg-white dark:bg-[#0f172a] flex items-center justify-between px-6 shrink-0 shadow-sm dark:shadow-md border-b border-slate-200 dark:border-transparent z-30 transition-colors">
@@ -188,6 +229,8 @@
                 <div class="font-bold text-[15px] tracking-tight text-slate-900 dark:text-white">WaveViewer <span class="text-indigo-600 dark:text-indigo-400 font-normal italic">Pro</span></div>
                 <div class="text-[10px] text-slate-500 dark:text-slate-400 font-mono tracking-widest uppercase flex items-center gap-2">
                     <span id="timescale-display">Timescale: 1s</span> 
+                    <span class="text-slate-300 dark:text-slate-600">|</span> 
+                    <span class="text-indigo-600 dark:text-indigo-400 font-bold">Cursor: <span id="cursor-time-display">0</span></span>
                     <span class="text-slate-300 dark:text-slate-600">|</span> 
                     <span class="text-emerald-600 dark:text-emerald-400">Left-Click: Anchor</span>
                     <span class="text-slate-300 dark:text-slate-600">|</span> 
@@ -223,7 +266,7 @@
                 </button>
             </div>
             
-            <button onclick="toggleTheme()" class="p-2 mr-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Toggle Theme">
+            <button onclick="toggleTheme(event)" class="p-2 mr-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Toggle Theme">
                 <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
             </button>
@@ -245,13 +288,24 @@
         <!-- Signal Names Sidebar -->
         <div id="signal-list">
             <div class="signal-header text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">
-                <span>Signal Name</span>
+                <div class="flex items-center gap-2">
+                    <span>Signal Name</span>
+                    <button onclick="showAddSignalMenu(event)" class="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors" title="Add Signal">+</button>
+                </div>
                 <span>Cursor Val</span>
+
+                <!-- Floating Add Signal Menu -->
+                <div id="add-signal-menu" class="hidden absolute top-8 left-4 w-48 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-y-auto max-h-64 normal-case tracking-normal font-medium shadow-[0_10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.4)]">
+                    <!-- Populated by JS -->
+                </div>
             </div>
             <div id="signal-list-scroll">
                 <div id="signal-names-container" class="py-2"></div>
             </div>
         </div>
+
+        <!-- Sidebar Resizer -->
+        <div id="sidebar-resizer"></div>
 
         <!-- Canvas Area -->
         <div id="canvas-wrapper">
@@ -266,7 +320,9 @@
     <script>
         // --- 1. STATE & THEME MANAGEMENT ---
         let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
+        let visibleSignals = []; // Holds the signals currently chosen to display
         let scale = 10;
+        const paddingX = 20; // Padding from left edge to make time 0 visible
         const rowHeight = 40;
         const waveHeight = 24;
         const paddingY = (rowHeight - waveHeight) / 2;
@@ -292,7 +348,8 @@
             updateThemeIcons();
         }
 
-        function toggleTheme() {
+        function toggleTheme(e) {
+            if(e) e.stopPropagation();
             isDarkMode = !isDarkMode;
             if (isDarkMode) {
                 document.documentElement.classList.add('dark');
@@ -323,7 +380,7 @@
                     timelineText: '#94a3b8',
                     timelineTick: '#334155',
                     gridLines: 'rgba(255, 255, 255, 0.05)',
-                    rowAltBg: 'rgba(255, 255, 255, 0.015)', // Zebra Striping
+                    rowAltBg: 'rgba(255, 255, 255, 0.015)',
                     cursorLine: 'rgba(255, 255, 255, 0.4)',
                     val1: '#22c55e',
                     val1Fill: 'rgba(34, 197, 94, 0.12)',
@@ -344,17 +401,17 @@
                     timelineBg: '#f1f5f9',
                     timelineText: '#64748b',
                     timelineTick: '#cbd5e1',
-                    gridLines: 'rgba(0, 0, 0, 0.08)', // Stronger Grid
-                    rowAltBg: 'rgba(0, 0, 0, 0.03)', // Zebra Striping
+                    gridLines: 'rgba(0, 0, 0, 0.08)',
+                    rowAltBg: 'rgba(0, 0, 0, 0.03)',
                     cursorLine: 'rgba(0, 0, 0, 0.4)',
-                    val1: '#059669', // Stronger Green
+                    val1: '#059669',
                     val1Fill: 'rgba(16, 185, 129, 0.15)',
                     val0: '#059669',
                     valX: '#dc2626',
                     valXFill: 'rgba(220, 38, 38, 0.1)',
                     valZ: '#d97706',
-                    valBus: '#2563eb', // Stronger Blue
-                    busTextVal: '#1e293b', // Darker text for readability
+                    valBus: '#2563eb',
+                    busTextVal: '#1e293b',
                     busTextX: '#dc2626',
                     anchor: '#d97706',
                     deltaLine: 'rgba(79, 70, 229, 0.7)',
@@ -372,8 +429,13 @@
             } else {
                 document.getElementById('viewer-container').classList.remove('hidden');
                 parseVCD(vcdString);
+                
+                // Initialize visibility to all parsed signals
+                visibleSignals = [...parsedData.signals];
+
                 document.getElementById('timescale-display').innerText = `Timescale: ${parsedData.timescale}`;
                 initRenderer();
+                setupSidebarResizer();
                 fitToScreen();
             }
         };
@@ -446,7 +508,47 @@
             parsedData.timescale = timescale;
         }
 
-        // --- 3. SIDEBAR & INTERACTIVITY ---
+        // --- 3. FREQUENCY CALCULATOR ---
+        function getFrequencyString(deltaTicks) {
+            if (deltaTicks === 0) return '';
+            
+            let timescaleValue = 1;
+            let timescaleUnit = 's';
+            if (parsedData.timescale) {
+                const match = parsedData.timescale.match(/(\d+)\s*([a-zA-Z]+)/);
+                if (match) {
+                    timescaleValue = parseInt(match[1]);
+                    timescaleUnit = match[2].toLowerCase();
+                }
+            }
+            
+            const multipliers = { 's': 1, 'ms': 1e-3, 'us': 1e-6, 'ns': 1e-9, 'ps': 1e-12, 'fs': 1e-15 };
+            const unitMult = multipliers[timescaleUnit] || 1;
+            const deltaSeconds = deltaTicks * timescaleValue * unitMult;
+            const freqHz = 1 / deltaSeconds;
+
+            if (!isFinite(freqHz)) return '';
+            if (freqHz >= 1e9) return (freqHz / 1e9).toFixed(2) + ' GHz';
+            if (freqHz >= 1e6) return (freqHz / 1e6).toFixed(2) + ' MHz';
+            if (freqHz >= 1e3) return (freqHz / 1e3).toFixed(2) + ' kHz';
+            return freqHz.toFixed(2) + ' Hz';
+        }
+
+        function getDeltaTimeText(deltaTicks) {
+            let timescaleValue = 1;
+            let timescaleUnit = 's';
+            if (parsedData.timescale) {
+                const match = parsedData.timescale.match(/(\d+)\s*([a-zA-Z]+)/);
+                if (match) {
+                    timescaleValue = parseInt(match[1]);
+                    timescaleUnit = match[2];
+                }
+            }
+            return `${deltaTicks * timescaleValue} ${timescaleUnit}`;
+        }
+
+
+        // --- 4. SIDEBAR & INTERACTIVITY ---
         const waveCanvas = document.getElementById('wave-canvas');
         const cursorCanvas = document.getElementById('cursor-canvas');
         const timeCanvas = document.getElementById('timeline-canvas');
@@ -459,7 +561,7 @@
             const namesContainer = document.getElementById('signal-names-container');
             namesContainer.innerHTML = '';
             
-            parsedData.signals.forEach((sig, index) => {
+            visibleSignals.forEach((sig, index) => {
                 const div = document.createElement('div');
                 div.className = 'signal-item code-font';
                 div.draggable = true; 
@@ -473,8 +575,8 @@
                     div.classList.remove('drag-over');
                     const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
                     if (fromIdx !== index && !isNaN(fromIdx)) {
-                        const movedSig = parsedData.signals.splice(fromIdx, 1)[0];
-                        parsedData.signals.splice(index, 0, movedSig);
+                        const movedSig = visibleSignals.splice(fromIdx, 1)[0];
+                        visibleSignals.splice(index, 0, movedSig);
                         initRenderer(); 
                     }
                 };
@@ -488,10 +590,13 @@
                         <span class="text-slate-400 dark:text-slate-500 text-[10px] w-6 shrink-0">[${sig.size}]</span> 
                         <span class="text-slate-800 dark:text-indigo-200 truncate font-semibold" title="${sig.name}">${shortName}</span>
                     </div>
-                    <div class="flex items-center gap-2 pointer-events-none">
-                        <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)}">
+                    <div class="flex items-center gap-1.5 pointer-events-auto">
+                        <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)} pointer-events-none">
                             ${formatDisplayValue(initVal, sig.size)}
                         </div>
+                        <button onclick="removeSignal(event, ${index})" class="remove-btn text-slate-400 hover:text-red-500 transition-colors ml-1 p-0.5" title="Hide Signal">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
                     </div>
                 `;
                 namesContainer.appendChild(div);
@@ -505,6 +610,46 @@
             window.addEventListener('resize', draw);
             draw();
         }
+
+        window.removeSignal = function(e, index) {
+            e.stopPropagation();
+            visibleSignals.splice(index, 1);
+            initRenderer();
+        };
+
+        window.showAddSignalMenu = function(e) {
+            e.stopPropagation();
+            const menu = document.getElementById('add-signal-menu');
+            menu.innerHTML = '';
+            let hiddenCount = 0;
+            
+            parsedData.signals.forEach(sig => {
+                if (!visibleSignals.includes(sig)) {
+                    hiddenCount++;
+                    const btn = document.createElement('button');
+                    btn.className = 'block w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 transition-colors';
+                    btn.innerText = sig.name.split('.').pop();
+                    btn.onclick = () => {
+                        visibleSignals.push(sig);
+                        menu.classList.add('hidden');
+                        initRenderer();
+                    };
+                    menu.appendChild(btn);
+                }
+            });
+
+            if (hiddenCount === 0) {
+                menu.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500 text-center italic">All signals visible</div>';
+            }
+            menu.classList.remove('hidden');
+        };
+
+        window.hideAddSignalMenu = function() {
+            const menu = document.getElementById('add-signal-menu');
+            if (menu && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        };
 
         window.changeGlobalRadix = function(newRadix) {
             globalRadix = newRadix;
@@ -551,7 +696,39 @@
             return currentVal;
         }
 
-        // --- 4. CANVAS INTERACTIVITY ---
+        // --- 4.5 SIDEBAR RESIZER ---
+        function setupSidebarResizer() {
+            const resizer = document.getElementById('sidebar-resizer');
+            const sidebar = document.getElementById('signal-list');
+            let isResizing = false;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                resizer.classList.add('active');
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                let newWidth = e.clientX;
+                if (newWidth < 200) newWidth = 200;
+                if (newWidth > 800) newWidth = 800;
+                sidebar.style.width = newWidth + 'px';
+                draw();
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    resizer.classList.remove('active');
+                    document.body.style.cursor = '';
+                    draw();
+                }
+            });
+        }
+
+        // --- 5. CANVAS INTERACTIVITY ---
         function setupCanvasInteractions() {
             wrapper.onmousedown = (e) => {
                 if (e.button === 1 || e.shiftKey) {
@@ -580,10 +757,11 @@
                 }
 
                 const rect = waveCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
+                const x = e.clientX - rect.left - paddingX;
                 let rawTime = x / scale;
                 hoverTime = Math.max(0, Math.min(Math.round(rawTime), parsedData.maxTime));
                 
+                document.getElementById('cursor-time-display').innerText = getDeltaTimeText(hoverTime);
                 drawCursor();
                 updateSidebarValues();
             };
@@ -602,17 +780,17 @@
         }
 
         function updateSidebarValues() {
-            parsedData.signals.forEach((sig, index) => {
+            visibleSignals.forEach((sig, index) => {
                 const val = getValueAtTime(sig, hoverTime);
                 const badge = document.getElementById(`val-badge-${index}`);
                 if (badge) {
                     badge.innerText = formatDisplayValue(val, sig.size);
-                    badge.className = `sig-val ${getValueClass(val, sig.size)}`;
+                    badge.className = `sig-val ${getValueClass(val, sig.size)} pointer-events-none`;
                 }
             });
         }
 
-        // --- 5. RENDER ENGINE ---
+        // --- 6. RENDER ENGINE ---
         function zoom(factor) {
             scale *= factor;
             if (scale < 0.1) scale = 0.1;
@@ -622,13 +800,13 @@
 
         function fitToScreen() {
             const containerWidth = wrapper.clientWidth;
-            scale = Math.max(1, (containerWidth - 50) / parsedData.maxTime);
+            scale = Math.max(1, (containerWidth - 50 - paddingX) / parsedData.maxTime);
             draw();
         }
 
         function draw() {
-            const width = Math.max(wrapper.clientWidth, parsedData.maxTime * scale + 50);
-            const height = parsedData.signals.length * rowHeight;
+            const width = Math.max(wrapper.clientWidth, paddingX + parsedData.maxTime * scale + 50);
+            const height = visibleSignals.length * rowHeight;
 
             waveCanvas.width = width; waveCanvas.height = height;
             cursorCanvas.width = width; cursorCanvas.height = height;
@@ -660,7 +838,7 @@
             if (scale > 50) tickInterval = 1;
 
             for (let t = 0; t <= parsedData.maxTime; t += tickInterval) {
-                const x = t * scale;
+                const x = paddingX + t * scale;
                 timeCtx.beginPath();
                 timeCtx.moveTo(x, 22); timeCtx.lineTo(x, 32);
                 timeCtx.strokeStyle = theme.timelineTick; timeCtx.stroke();
@@ -675,7 +853,7 @@
             cursorCtx.clearRect(0, 0, width, height);
 
             if (hoverTime >= 0 && hoverTime <= parsedData.maxTime) {
-                const hX = hoverTime * scale;
+                const hX = paddingX + hoverTime * scale;
                 cursorCtx.beginPath();
                 cursorCtx.moveTo(hX, 0); cursorCtx.lineTo(hX, height);
                 cursorCtx.strokeStyle = theme.cursorLine;
@@ -684,7 +862,7 @@
             }
 
             if (anchorTime !== null) {
-                const aX = anchorTime * scale;
+                const aX = paddingX + anchorTime * scale;
                 
                 cursorCtx.beginPath();
                 cursorCtx.moveTo(aX, 0); cursorCtx.lineTo(aX, height);
@@ -698,8 +876,8 @@
                 cursorCtx.fill();
 
                 if (hoverTime !== anchorTime && hoverTime >= 0) {
-                    const hX = hoverTime * scale;
-                    const delta = Math.abs(hoverTime - anchorTime);
+                    const hX = paddingX + hoverTime * scale;
+                    const deltaTicks = Math.abs(hoverTime - anchorTime);
                     const midX = Math.min(aX, hX) + Math.abs(aX - hX) / 2;
 
                     cursorCtx.beginPath();
@@ -708,7 +886,10 @@
                     cursorCtx.lineWidth = 2;
                     cursorCtx.stroke();
 
-                    const text = `Δt: ${delta}`;
+                    const dtStr = getDeltaTimeText(deltaTicks);
+                    const freqStr = getFrequencyString(deltaTicks);
+                    const text = `Δt: ${dtStr} ${freqStr ? ' | ' + freqStr : ''}`;
+                    
                     cursorCtx.font = 'bold 11px "Fira Code"';
                     const textWidth = cursorCtx.measureText(text).width;
                     
@@ -729,22 +910,19 @@
             waveCtx.strokeStyle = theme.gridLines;
             waveCtx.lineWidth = 1;
             
-            for(let i = 0; i < parsedData.signals.length; i++) {
-                // Draw Zebra Striping
+            for(let i = 0; i < visibleSignals.length; i++) {
                 if (i % 2 === 1) {
                     waveCtx.fillStyle = theme.rowAltBg;
                     waveCtx.fillRect(0, i * rowHeight, width, rowHeight);
                 }
-                // Horizontal Line
                 waveCtx.beginPath();
                 waveCtx.moveTo(0, i * rowHeight); waveCtx.lineTo(width, i * rowHeight);
                 waveCtx.stroke();
             }
             
-            // Final bottom horizontal line
             waveCtx.beginPath();
-            waveCtx.moveTo(0, parsedData.signals.length * rowHeight); 
-            waveCtx.lineTo(width, parsedData.signals.length * rowHeight);
+            waveCtx.moveTo(0, visibleSignals.length * rowHeight); 
+            waveCtx.lineTo(width, visibleSignals.length * rowHeight);
             waveCtx.stroke();
 
             let tickInterval = 10;
@@ -755,18 +933,18 @@
 
             waveCtx.strokeStyle = theme.gridLines;
             for (let t = 0; t <= parsedData.maxTime; t += tickInterval) {
-                const x = t * scale;
+                const x = paddingX + t * scale;
                 waveCtx.beginPath();
                 waveCtx.moveTo(x, 0); waveCtx.lineTo(x, height);
                 waveCtx.stroke();
             }
 
-            parsedData.signals.forEach((sig, index) => {
+            visibleSignals.forEach((sig, index) => {
                 const yTop = index * rowHeight + paddingY;
                 const yBottom = yTop + waveHeight;
                 const yMid = yTop + waveHeight / 2;
 
-                waveCtx.lineWidth = 2.0; // Increased line width for visibility
+                waveCtx.lineWidth = 2.0; 
                 waveCtx.font = '11px "Fira Code", monospace';
                 waveCtx.textAlign = 'center';
                 waveCtx.textBaseline = 'middle';
@@ -774,8 +952,8 @@
                 for (let i = 0; i < sig.transitions.length; i++) {
                     const trans = sig.transitions[i];
                     const nextTrans = sig.transitions[i+1];
-                    const xStart = trans.time * scale;
-                    const xEnd = nextTrans ? nextTrans.time * scale : parsedData.maxTime * scale;
+                    const xStart = paddingX + trans.time * scale;
+                    const xEnd = paddingX + (nextTrans ? nextTrans.time * scale : parsedData.maxTime * scale);
                     
                     if (xStart >= xEnd) continue;
 
