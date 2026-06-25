@@ -76,20 +76,26 @@
 </head>
 <body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200">
 
-    <!-- 1. LOGIN VIEW -->
+   <!-- 1. LOGIN VIEW (FULLSCREEN HERO WITH FLOATING RIGHT CARD) -->
     <div id="login-view" class="view active h-full w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
+        
+        <!-- Fullscreen Background Elements -->
         <div class="absolute inset-0 bg-dot-grid"></div>
+        
+        <!-- Glowing Orbs -->
         <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
         <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
+        <!-- Theme Toggle on Login Page (Frosted Glass) -->
         <button onclick="toggleTheme()" class="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/5 backdrop-blur-md transition-all shadow-lg z-50" title="Toggle Theme">
             <svg id="icon-sun-login" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             <svg id="icon-moon-login" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
 
+        <!-- Content Container -->
         <div class="relative z-10 w-full min-h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-center justify-center lg:justify-between px-6 lg:px-12 py-10 lg:py-6">
             
-            <!-- LEFT SIDE -->
+            <!-- LEFT SIDE: Dynamic Minimalist Hero -->
             <div class="hidden lg:flex flex-col justify-center w-1/2 pr-10 pointer-events-none">
                 <div class="flex items-center gap-3 text-white mb-10 lg:mb-12">
                     <div class="w-10 h-10 bg-indigo-500 text-white rounded-[10px] flex items-center justify-center font-bold text-lg shadow-lg">LS</div>
@@ -103,6 +109,7 @@
                     A professional, zero-setup verification environment built for hardware engineers and academic institutions.
                 </p>
 
+                <!-- Sleek Editor Mockup -->
                 <div class="w-full max-w-[480px] mt-8 fade-transition">
                     <div class="rounded-xl overflow-hidden bg-[#1e1e1e] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
                         <div class="bg-[#252526] px-4 py-3 flex items-center gap-4 border-b border-white/5">
@@ -128,12 +135,22 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="mt-8 flex items-center justify-between max-w-[480px]">
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Secure Cloud Infrastructure</div>
+                    <div class="flex gap-2">
+                        <div id="dot-0" class="w-6 h-1 rounded-full bg-indigo-500 transition-all duration-500"></div>
+                        <div id="dot-1" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
+                        <div id="dot-2" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
+                    </div>
+                </div>
             </div>
 
-            <!-- RIGHT SIDE -->
+            <!-- RIGHT SIDE: Floating Login Card -->
             <div class="w-full lg:w-[460px] flex items-center justify-center z-20">
                 <div class="bg-white dark:bg-slate-800 p-8 sm:p-10 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] w-full flex flex-col transition-colors">
                     
+                    <!-- Mobile Logo -->
                     <div class="lg:hidden flex justify-center items-center gap-3 mb-8">
                         <div class="w-12 h-12 bg-indigo-500 text-white rounded-[14px] flex items-center justify-center font-black text-2xl shadow-lg">LS</div>
                         <span class="font-extrabold text-3xl tracking-tight text-slate-900 dark:text-white">LogicSilicon</span>
