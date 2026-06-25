@@ -658,26 +658,46 @@
             draw();
         }
 
-        function formatDisplayValue(val, size) {
-            if (val.toLowerCase().includes('x')) return 'X';
-            if (val.toLowerCase().includes('z')) return 'Z';
-            if (size === 1) return val;
-            
-            if (/^[01]+$/.test(val)) {
-                if (globalRadix === 'hex') return 'h' + parseInt(val, 2).toString(16).toUpperCase();
-                if (globalRadix === 'udec') return parseInt(val, 2).toString(10);
-                if (globalRadix === 'sdec') {
-                    let num = parseInt(val, 2);
-                    if (val[0] === '1') {
-                        num = num - Math.pow(2, val.length);
-                    }
-                    return num.toString(10);
-                }
-                if (globalRadix === 'bin') return 'b' + val;
-                if (globalRadix === 'oct') return 'o' + parseInt(val, 2).toString(8);
-            }
-            return val;
+function formatDisplayValue(val, size) {
+    if (val.toLowerCase().includes('x')) return 'X';
+    if (val.toLowerCase().includes('z')) return 'Z';
+    if (size === 1) return val;
+    
+    if (/^[01]+$/.test(val)) {
+        // 1. Reconstruct the full bit-width by padding missing leading zeros
+        let paddedVal = val.padStart(size, '0');
+
+        if (globalRadix === 'hex') {
+            // Pad hex characters (4 bits per hex character)
+            let hexChars = Math.ceil(size / 4);
+            return 'h' + parseInt(paddedVal, 2).toString(16).toUpperCase().padStart(hexChars, '0');
         }
+        
+        if (globalRadix === 'udec') {
+            return parseInt(paddedVal, 2).toString(10);
+        }
+        
+        if (globalRadix === 'sdec') {
+            let num = parseInt(paddedVal, 2);
+            // 2. Evaluate the MSB of the *padded* value for Two's Complement
+            if (paddedVal[0] === '1') {
+                num = num - Math.pow(2, size);
+            }
+            return num.toString(10);
+        }
+        
+        if (globalRadix === 'bin') {
+            return 'b' + paddedVal;
+        }
+        
+        if (globalRadix === 'oct') {
+            // Pad octal characters (3 bits per octal character)
+            let octChars = Math.ceil(size / 3);
+            return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
+        }
+    }
+    return val;
+}
 
         function getValueClass(val, size) {
             if (val.toLowerCase().includes('x')) return 'val-x';
