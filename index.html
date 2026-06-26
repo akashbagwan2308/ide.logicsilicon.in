@@ -166,7 +166,7 @@
                     </div>
 
                     <h2 class="text-[28px] font-extrabold text-slate-900 dark:text-white mb-1 transition-colors tracking-tight">Welcome Back</h2>
-                    <p class="text-slate-500 dark:text-slate-400 text-[15px] mb-6 font-medium transition-colors">Sign in to access your simulation workspace.</p>
+                    <p class="text-slate-500 dark:text-slate-400 text-[15px] mb-6 font-medium transition-colors">Sign in to securely access your simulation workspace.</p>
 
                     <div id="login-error" class="hidden bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/50 text-red-600 dark:text-red-400 p-3.5 rounded-xl mb-4 text-sm font-medium transition-colors flex items-start gap-3">
                         <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -183,12 +183,12 @@
                             <input type="password" id="user-auth" class="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="••••••••" required>
                         </div>
                         <button type="submit" id="btn-login" class="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/30 flex justify-center items-center gap-2">
-                            Access Simulator
+                            Secure Login
                         </button>
                     </form>
 
                     <p class="mt-6 text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic uppercase tracking-widest text-center transition-colors">
-                        Auto-Role Detection Active
+                        JWT Secure Connect Active
                     </p>
                 </div>
             </div>
@@ -378,8 +378,10 @@ Write your design and testbench, then click 'Run Code'.</span>
         // =========================================================
         // CONFIGURATION & STATE
         // =========================================================
-        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzhtk4rISUDJvMb3nLzJq2CBY5cVnm9kAnL_fuW77MLOkoR0-_dS0nKtmCwBjpD3mpAnQ/exec"; 
-        const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; 
+        
+        // 🔴 SECURE ROUTES:
+        const AUTH_API_URL = "https://ide-backend-i1s5.onrender.com/login"; // Node backend secure login
+        const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; // Secured run endpoint
 
         let currentUser = null;
         let editorDesign = null;
@@ -389,7 +391,7 @@ Write your design and testbench, then click 'Run Code'.</span>
         
         // --- Multi-File State ---
         let designFiles = [{ name: "design.sv", content: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule" }];
-        let tbFiles = [{ name: "testbench.sv", content: "module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
+        let tbFiles = [{ name: "testbench.sv", content: "`timescale 1ns/1ns \n  module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
         
         let activeDesignIdx = 0;
         let activeTbIdx = 0;
@@ -497,8 +499,11 @@ Write your design and testbench, then click 'Run Code'.</span>
                 document.getElementById('setting-fontsize').value = editorSettings.fontSize;
             }
 
+            // --- SECURE: Check for active JWT token and Session ---
+            const token = sessionStorage.getItem('ls_jwt_token');
             const session = sessionStorage.getItem('ls_playground_user');
-            if(session) {
+            
+            if(token && session) {
                 currentUser = JSON.parse(session);
                 showSimulator();
             } else {
@@ -579,6 +584,9 @@ Write your design and testbench, then click 'Run Code'.</span>
             setTimeout(initMonaco, 100);
         }
 
+        // ==========================================
+        // SECURE JWT LOGIN FUNCTION
+        // ==========================================
         async function handleLogin(e) {
             e.preventDefault();
             const email = document.getElementById('user-email').value;
@@ -592,42 +600,37 @@ Write your design and testbench, then click 'Run Code'.</span>
             errorDiv.classList.add('hidden');
 
             try {
-                let res = await fetch(GOOGLE_WEB_APP_URL, {
-                    method: 'POST', headers: {'Content-Type': 'text/plain'}, 
-                    body: JSON.stringify({ action: 'login', role: 'student', email, authString })
+                // Fetching from the Secure Node Backend, NOT Google Apps Script directly
+                let res = await fetch(AUTH_API_URL, {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ email, authString })
                 });
+                
                 let data = await res.json();
                 
-                if (data.status === 'success') {
-                    currentUser = { email, id: authString, role: 'student' };
+                if (data.status === 'success' && data.token) {
+                    // STORE THE VIP JWT PASS
+                    sessionStorage.setItem('ls_jwt_token', data.token);
+                    
+                    currentUser = data.user || { email: email, role: 'student' };
                     sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
                     showSimulator();
                 } else {
-                    res = await fetch(GOOGLE_WEB_APP_URL, {
-                        method: 'POST', headers: {'Content-Type': 'text/plain'}, 
-                        body: JSON.stringify({ action: 'login', role: 'admin', email, authString })
-                    });
-                    data = await res.json();
-                    
-                    if (data.status === 'success') {
-                        currentUser = { email, role: 'admin' };
-                        sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
-                        showSimulator();
-                    } else {
-                        errorText.innerText = "Invalid credentials. Please verify your access.";
-                        errorDiv.classList.remove('hidden');
-                    }
+                    errorText.innerText = data.message || "Invalid credentials. Please verify your access.";
+                    errorDiv.classList.remove('hidden');
                 }
             } catch(err) {
-                errorText.innerText = "Network error. Unable to reach authentication server.";
+                errorText.innerText = "Network error. Unable to reach backend authentication server.";
                 errorDiv.classList.remove('hidden');
             } finally {
-                btn.innerHTML = 'Access Simulator';
+                btn.innerHTML = 'Secure Login';
                 btn.disabled = false;
             }
         }
 
         function logout() {
+            sessionStorage.removeItem('ls_jwt_token'); // Destroy the token
             sessionStorage.removeItem('ls_playground_user');
             sessionStorage.removeItem('ls_last_vcd');
             currentUser = null;
@@ -879,7 +882,6 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         // --- UPDATED DOWNLOAD LOGIC ---
- // --- UPDATED DOWNLOAD LOGIC ---
         function downloadCode() {
             // Save active editors
             if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
@@ -997,9 +999,18 @@ Write your design and testbench, then click 'Run Code'.</span>
             event.target.value = ''; 
         }
 
+        // ==========================================
+        // SECURE COMPILATION EXECUTION
+        // ==========================================
         async function runSimulation() {
             if(!editorDesign || !editorTb) return;
             
+            const token = sessionStorage.getItem('ls_jwt_token');
+            if(!token) {
+                alert("Security Error: No active session. Please log out and log in again.");
+                return;
+            }
+
             const btnRun = document.getElementById('btn-run');
             const btnStop = document.getElementById('btn-stop');
             const output = document.getElementById('terminal-output');
@@ -1012,7 +1023,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             waveBtn.classList.add('hidden'); 
 
             const logColor = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
-            output.innerHTML = `<span class="${logColor}">Initiating SystemVerilog compilation pipeline...</span>\n`;
+            output.innerHTML = `<span class="${logColor}">Initiating Secure SystemVerilog compilation pipeline...</span>\n`;
 
             // Use the advanced multi-file preprocessor bundler!
             const payloadCode = bundleFiles();
@@ -1022,15 +1033,24 @@ Write your design and testbench, then click 'Run Code'.</span>
             const signal = abortController.signal;
 
             try {
+                // ATTACH THE JWT TOKEN TO THE HEADERS
                 const res = await fetch(VERILOG_API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // <--- The VIP Pass
+                    },
                     body: JSON.stringify({ code: payloadCode }),
                     signal: signal
                 });
                 
                 const data = await res.json();
                 
+                // Security check failure handling
+                if (res.status === 401 || res.status === 403) {
+                    throw new Error("UNAUTHORIZED: " + (data.output || "Invalid token."));
+                }
+
                 // Clean up /tmp/ isolated directory paths from standard Icarus output
                 let processedOutput = data.output || "";
                 processedOutput = processedOutput.replace(/\/tmp\/[a-zA-Z0-9_.-]+\//g, "");
@@ -1056,6 +1076,10 @@ Write your design and testbench, then click 'Run Code'.</span>
                     const abortColor = isDarkMode ? 'text-amber-400' : 'text-amber-600';
                     output.innerHTML += `<span class="${abortColor}">\n--- SIMULATION ABORTED ---\n</span>`;
                     output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">The simulation was manually stopped by the user.</span>`;
+                } else if (err.message.includes("UNAUTHORIZED")) {
+                    const secColor = isDarkMode ? 'text-red-500' : 'text-red-600';
+                    output.innerHTML += `<span class="${secColor}">\n--- SECURITY ERROR ---\n</span>`;
+                    output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">${err.message}</span>`;
                 } else {
                     const netErrColor = isDarkMode ? 'text-red-500' : 'text-red-600';
                     output.innerHTML += `<span class="${netErrColor}">\n--- NETWORK ERROR ---\n</span>`;
