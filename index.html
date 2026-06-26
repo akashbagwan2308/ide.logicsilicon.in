@@ -265,6 +265,11 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- RTL Viewer Button -->
+                <button onclick="openRTLViewer()" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]">
+                    👁️ RTL Schematic (Beta)
+                </button>
                 
                 <!-- Run and Stop Buttons -->
                 <button onclick="runSimulation()" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]">
@@ -874,10 +879,25 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         // --- UPDATED DOWNLOAD LOGIC ---
+ // --- UPDATED DOWNLOAD LOGIC ---
         function downloadCode() {
             // Save active editors
             if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
             if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+
+            // Prompt user for custom filename
+            let defaultName = `ls_project_${Date.now()}.sv`;
+            let filename = prompt("Enter a name for your exported project:", defaultName);
+
+            // Abort if the user clicks "Cancel"
+            if (filename === null) return;
+
+            // Clean up the string and ensure it has a valid extension
+            filename = filename.trim();
+            if (filename === "") filename = defaultName;
+            if (!filename.endsWith('.sv') && !filename.endsWith('.v') && !filename.endsWith('.txt')) {
+                filename += '.sv';
+            }
 
             let out = `// ========================================================
 // 🚀 Project exported from LogicSilicon Simulator
@@ -899,7 +919,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `ls_project_${Date.now()}.sv`;
+            a.download = filename; // Applied custom filename
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1063,6 +1083,14 @@ Write your design and testbench, then click 'Run Code'.</span>
         function openWaveformViewer() {
             window.open('waveform.html', '_blank');
         }
+
+        window.openRTLViewer = function() {
+            if(!editorDesign) return;
+            const currentDesignCode = editorDesign.getValue();
+            // Save active design to session storage so the new tab can fetch it
+            sessionStorage.setItem('ls_rtl_code', currentDesignCode);
+            window.open('schematic.html', '_blank');
+        };
 
         function initResizers() {
             const hResizer = document.getElementById('h-resizer');
