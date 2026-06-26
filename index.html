@@ -72,11 +72,20 @@
 
         .pane-maximized { width: 100% !important; display: flex !important; }
         .pane-hidden { display: none !important; }
+
+        /* Toggle Switch Styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #6366f1;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #6366f1;
+        }
     </style>
 </head>
 <body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200">
 
-   <!-- 1. LOGIN VIEW (FULLSCREEN HERO WITH FLOATING RIGHT CARD) -->
+    <!-- 1. LOGIN VIEW (FULLSCREEN HERO WITH FLOATING RIGHT CARD) -->
     <div id="login-view" class="view active h-full w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
         
         <!-- Fullscreen Background Elements -->
@@ -199,14 +208,14 @@
                 
                 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
                 
-                <div class="flex items-center gap-2">
-                    <button onclick="triggerUpload()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors">
+                <div class="flex items-center gap-2 relative">
+                    <button onclick="triggerUpload()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Upload Code">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span class="hidden sm:inline">Upload</span>
                     </button>
                     <input type="file" id="file-upload" accept=".v,.sv,.txt" class="hidden" onchange="handleFileUpload(event)">
 
-                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors">
+                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Download Code">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         <span class="hidden sm:inline">Save</span>
                     </button>
@@ -219,10 +228,43 @@
                     <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium transition-colors tracking-wide" id="nav-user-email">user@domain.com</span>
                 </div>
 
+                <!-- Theme Toggle -->
                 <button onclick="toggleTheme()" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Theme">
                     <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
+
+                <!-- Settings Dropdown -->
+                <div class="relative">
+                    <button onclick="toggleSettings(event)" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center" title="Editor Settings">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </button>
+                    <!-- Settings Menu -->
+                    <div id="settings-menu" class="hidden absolute right-0 top-full mt-3 w-56 bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-4" onclick="event.stopPropagation()">
+                        <h3 class="font-bold text-[11px] text-slate-500 uppercase tracking-widest mb-4">Editor Settings</h3>
+                        
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Word Wrap</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="setting-wrap" onchange="updateEditorSettings()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out z-10" />
+                                <label for="setting-wrap" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Show Minimap</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="setting-minimap" onchange="updateEditorSettings()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out z-10" />
+                                <label for="setting-minimap" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer transition-colors duration-300 ease-in-out"></label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Font Size</span>
+                            <input type="number" id="setting-fontsize" value="14" min="10" max="24" onchange="updateEditorSettings()" class="w-16 bg-slate-100 dark:bg-slate-800 rounded-md p-1.5 text-sm font-bold text-center border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Run and Stop Buttons -->
                 <button onclick="runSimulation()" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]">
@@ -241,7 +283,7 @@
             </div>
         </nav>
 
-        <div class="flex-1 flex flex-col overflow-hidden min-h-0">
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0" onclick="closeSettingsMenu()">
             <!-- TOP SECTION: Editors Side-by-Side -->
             <div id="top-section" class="flex-1 flex flex-row min-h-0 bg-white dark:bg-dark-editor transition-colors relative">
                 
@@ -348,6 +390,13 @@ Write your design and testbench, then click 'Run Code'.</span>
         let activeTbIdx = 0;
         let maximizedPane = null; // 'design', 'tb', or null
 
+        // --- Editor Settings State ---
+        let editorSettings = {
+            wrap: false,
+            minimap: false,
+            fontSize: 14
+        };
+
         const heroSlides = [
             {
                 title: "Enterprise-Grade<br/>SystemVerilog Simulation.",
@@ -412,6 +461,7 @@ Write your design and testbench, then click 'Run Code'.</span>
         window.onload = () => {
             setInterval(cycleHeroContent, 6000);
 
+            // Load Theme
             const savedTheme = localStorage.getItem('ls_theme');
             if (savedTheme === 'dark') {
                 isDarkMode = true;
@@ -431,6 +481,15 @@ Write your design and testbench, then click 'Run Code'.</span>
                     document.getElementById('icon-sun-login').classList.add('hidden');
                     document.getElementById('icon-moon-login').classList.remove('hidden');
                 }
+            }
+
+            // Load Editor Settings
+            const savedSettings = localStorage.getItem('ls_editor_settings');
+            if(savedSettings) {
+                editorSettings = JSON.parse(savedSettings);
+                document.getElementById('setting-wrap').checked = editorSettings.wrap;
+                document.getElementById('setting-minimap').checked = editorSettings.minimap;
+                document.getElementById('setting-fontsize').value = editorSettings.fontSize;
             }
 
             const session = sessionStorage.getItem('ls_playground_user');
@@ -474,6 +533,36 @@ Write your design and testbench, then click 'Run Code'.</span>
             renderTabs('design');
             renderTabs('tb');
         }
+
+        // --- Settings Logic ---
+        window.toggleSettings = function(e) {
+            e.stopPropagation();
+            document.getElementById('settings-menu').classList.toggle('hidden');
+        };
+
+        window.closeSettingsMenu = function() {
+            const menu = document.getElementById('settings-menu');
+            if(menu && !menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
+            }
+        };
+
+        window.updateEditorSettings = function() {
+            editorSettings.wrap = document.getElementById('setting-wrap').checked;
+            editorSettings.minimap = document.getElementById('setting-minimap').checked;
+            editorSettings.fontSize = parseInt(document.getElementById('setting-fontsize').value) || 14;
+
+            const opts = { 
+                wordWrap: editorSettings.wrap ? 'on' : 'off', 
+                minimap: { enabled: editorSettings.minimap }, 
+                fontSize: editorSettings.fontSize 
+            };
+            
+            if(editorDesign) editorDesign.updateOptions(opts);
+            if(editorTb) editorTb.updateOptions(opts);
+            
+            localStorage.setItem('ls_editor_settings', JSON.stringify(editorSettings));
+        };
 
         function showSimulator() {
             document.getElementById('login-view').classList.remove('active');
@@ -587,7 +676,6 @@ Write your design and testbench, then click 'Run Code'.</span>
             if(!confirm("Delete file '" + (paneType === 'design' ? designFiles[idx].name : tbFiles[idx].name) + "'?")) return;
 
             if (paneType === 'design') {
-                // Save current editor content if not deleting the active one
                 if (activeDesignIdx !== idx && editorDesign) {
                     designFiles[activeDesignIdx].content = editorDesign.getValue();
                 }
@@ -595,11 +683,9 @@ Write your design and testbench, then click 'Run Code'.</span>
                 designFiles.splice(idx, 1);
                 
                 if (activeDesignIdx === idx) {
-                    // Was active, switch to previous
                     activeDesignIdx = Math.max(0, idx - 1);
                     if(editorDesign) editorDesign.setValue(designFiles[activeDesignIdx].content);
                 } else if (activeDesignIdx > idx) {
-                    // Was after deleted one, shift index down
                     activeDesignIdx--;
                 }
                 renderTabs('design');
@@ -620,7 +706,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             }
         }
 
-        function addFile(paneType) {
+        window.addFile = function(paneType) {
             let filename = prompt("Enter new file name (e.g., alu.sv):");
             if (!filename) return;
             filename = filename.trim();
@@ -722,9 +808,9 @@ Write your design and testbench, then click 'Run Code'.</span>
                             output.push(`// --- Included from ${incName} ---`);
                             output.push(resolveIncludes(incFile.content, incName));
                             output.push(`// --- End Include ${incName} ---`);
-                            output.push(`\`line ${i + 2} "${filename}" 0`); // Restore line numbering
+                            output.push(`\`line ${i + 2} "${filename}" 0`); 
                         } else {
-                            output.push(lines[i]); // Let it fail on server if file doesn't exist
+                            output.push(lines[i]); 
                         }
                     } else {
                         output.push(lines[i]);
@@ -751,7 +837,6 @@ Write your design and testbench, then click 'Run Code'.</span>
             return finalPayload;
         }
 
-
         function initMonaco() {
             require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
             require(['vs/editor/editor.main'], function() {
@@ -759,8 +844,9 @@ Write your design and testbench, then click 'Run Code'.</span>
                     language: 'verilog',
                     theme: isDarkMode ? 'vs-dark' : 'vs',
                     automaticLayout: true,
-                    minimap: { enabled: false },
-                    fontSize: 14,
+                    fontSize: editorSettings.fontSize,
+                    wordWrap: editorSettings.wrap ? 'on' : 'off',
+                    minimap: { enabled: editorSettings.minimap },
                     fontFamily: "'Fira Code', Consolas, monospace",
                     padding: { top: 16, bottom: 16 },
                     scrollBeyondLastLine: false,
@@ -787,12 +873,29 @@ Write your design and testbench, then click 'Run Code'.</span>
             });
         }
 
+        // --- UPDATED DOWNLOAD LOGIC ---
         function downloadCode() {
-            const bundledCode = bundleFiles();
-            // Just for the download file readability, we strip the `line directives
-            const cleanCode = bundledCode.replace(/`line\s+\d+\s+"[^"]+"\s+\d+\n/g, "");
+            // Save active editors
+            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
+            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+
+            let out = `// ========================================================
+// 🚀 Project exported from LogicSilicon Simulator
+// 🌐 Verify any silicon right in your browser!
+// 🔗 https://ide.logicsilicon.in
+// ========================================================\n\n`;
+
+            designFiles.forEach(f => {
+                out += `// === DESIGN FILE: ${f.name} ===\n`;
+                out += f.content + "\n\n";
+            });
+
+            tbFiles.forEach(f => {
+                out += `// === TESTBENCH FILE: ${f.name} ===\n`;
+                out += f.content + "\n\n";
+            });
             
-            const blob = new Blob([cleanCode], { type: "text/plain" });
+            const blob = new Blob([out], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -807,6 +910,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             document.getElementById('file-upload').click();
         }
 
+        // --- UPDATED UPLOAD LOGIC ---
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -814,12 +918,60 @@ Write your design and testbench, then click 'Run Code'.</span>
             const reader = new FileReader();
             reader.onload = (e) => {
                 const content = e.target.result;
-                let newName = file.name;
                 
-                // Add to design files by default if uploaded
-                designFiles.push({ name: newName, content: content });
-                switchFileTab('design', designFiles.length - 1);
-                alert(`File "${newName}" loaded into the Design tab.`);
+                // Check if it's a LogicSilicon multi-file format
+                if (content.includes("// === DESIGN FILE:") || content.includes("// === TESTBENCH FILE:")) {
+                    let newDesignFiles = [];
+                    let newTbFiles = [];
+                    let lines = content.split('\n');
+                    
+                    let currentFile = null;
+                    let currentType = null;
+                    let currentContent = [];
+
+                    for(let i=0; i<lines.length; i++) {
+                        let dMatch = lines[i].match(/^\/\/ === DESIGN FILE: (.+) ===/);
+                        let tMatch = lines[i].match(/^\/\/ === TESTBENCH FILE: (.+) ===/);
+                        
+                        if(dMatch || tMatch) {
+                            // Save previous block
+                            if(currentFile) {
+                                if(currentType === 'design') newDesignFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
+                                else newTbFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
+                            }
+                            // Start new block
+                            currentFile = dMatch ? dMatch[1] : tMatch[1];
+                            currentType = dMatch ? 'design' : 'tb';
+                            currentContent = [];
+                        } else {
+                            if(currentFile) currentContent.push(lines[i]);
+                        }
+                    }
+                    // Save last block
+                    if(currentFile) {
+                        if(currentType === 'design') newDesignFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
+                        else newTbFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
+                    }
+
+                    // Apply parsed files
+                    if(newDesignFiles.length > 0) designFiles = newDesignFiles;
+                    if(newTbFiles.length > 0) tbFiles = newTbFiles;
+                    
+                    activeDesignIdx = 0;
+                    activeTbIdx = 0;
+                    if(editorDesign && designFiles.length > 0) editorDesign.setValue(designFiles[0].content);
+                    if(editorTb && tbFiles.length > 0) editorTb.setValue(tbFiles[0].content);
+                    
+                    renderTabs('design');
+                    renderTabs('tb');
+                    alert("Project successfully imported with split tabs!");
+                    
+                } else {
+                    // Standard Verilog File: Replace ACTIVE design tab content
+                    if(editorDesign) editorDesign.setValue(content);
+                    designFiles[activeDesignIdx].content = content;
+                    alert(`Standard file loaded into the active Design tab: ${designFiles[activeDesignIdx].name}`);
+                }
             };
             reader.readAsText(file);
             event.target.value = ''; 
