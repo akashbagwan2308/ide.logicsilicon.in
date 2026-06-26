@@ -380,14 +380,22 @@
             let topModuleName = targetModule;
             
             if (!topModuleName) {
-                topModuleName = modules.find(m => netlist.modules[m].attributes && netlist.modules[m].attributes.top === 1);
+                topModuleName = modules.find(m =>netlist.modules[m].attributes?.top !== undefined);
                 if (!topModuleName) {
                     const instantiated = new Set();
                     modules.forEach(m => {
                         const cells = netlist.modules[m].cells || {};
                         Object.values(cells).forEach(c => instantiated.add(c.type));
                     });
-                    const rootModules = modules.filter(m => !instantiated.has(m));
+                    const rootModules = modules.filter(m => {
+    			if (instantiated.has(m))
+        			return false;
+
+    			const cells = netlist.modules[m].cells || {};
+
+    			// Ignore tiny leaf modules
+    			return Object.keys(cells).length > 0;
+			});
                     
                     if (rootModules.length === 1) {
                         topModuleName = rootModules[0];
@@ -398,7 +406,10 @@
                             return countB - countA;
                         })[0];
                     } else {
-                        topModuleName = modules[modules.length - 1]; 
+                        topModuleName =
+    modules.find(m =>
+        m.toLowerCase().includes("top")
+    ) || modules[0];
                     }
                 }
             }
