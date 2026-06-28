@@ -632,6 +632,22 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
                     
                     currentUser = data.user || { email: email, role: 'student' };
                     sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
+
+                    // --- NEW: RESET GITHUB SYNC ON FRESH LOGIN ---
+                    sessionStorage.removeItem('ls_gh_owner');
+                    sessionStorage.removeItem('ls_gh_repo');
+                    sessionStorage.removeItem('ls_gh_pat');
+                    
+                    currentGitOwner = null;
+                    currentGitRepo = null;
+                    currentGitPat = null;
+
+                    const gitBtn = document.getElementById('btn-connect-git');
+                    if (gitBtn) {
+                        gitBtn.innerText = "Connect Repo";
+                    }
+                    // ---------------------------------------------
+
                     showSimulator();
                 } else {
                     errorText.innerText = data.message || "Invalid credentials. Please verify your access.";
