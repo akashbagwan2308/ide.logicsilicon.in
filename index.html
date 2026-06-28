@@ -215,10 +215,15 @@
                     </button>
                     <input type="file" id="file-upload" accept=".v,.sv,.txt" class="hidden" onchange="handleFileUpload(event)">
 
-                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Download Code">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span class="hidden sm:inline">Save</span>
-                    </button>
+	    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Download Code">
+    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+    <span class="hidden sm:inline">Save</span>
+</button>
+
+<button id="btn-save-git" onclick="saveToGitHub()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-[13px] font-medium transition-colors border border-slate-700" title="Push to GitHub">
+    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.376.202 2.394.1 2.646.64.699 1.026 1.591 1.026 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"></path></svg>
+    <span class="hidden sm:inline">Push to Git</span>
+</button>
                 </div>
             </div>
 
@@ -263,6 +268,12 @@
                             <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Font Size</span>
                             <input type="number" id="setting-fontsize" value="14" min="10" max="24" onchange="updateEditorSettings()" class="w-16 bg-slate-100 dark:bg-slate-800 rounded-md p-1.5 text-sm font-bold text-center border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500">
                         </div>
+			<div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Sync</span>
+    <button onclick="connectGitHub()" id="btn-connect-git" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-bold transition-colors">
+        Connect Repo
+    </button>
+</div>
                     </div>
                 </div>
 
@@ -379,9 +390,15 @@ Write your design and testbench, then click 'Run Code'.</span>
         // CONFIGURATION & STATE
         // =========================================================
         
-        // 🔴 SECURE ROUTES:
-        const AUTH_API_URL = "https://ide-backend-i1s5.onrender.com/login"; // Node backend secure login
-        const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; // Secured run endpoint
+// 🔴 SECURE ROUTES:
+const AUTH_API_URL = "https://ide-backend-i1s5.onrender.com/login"; 
+const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; 
+const GIT_API_URL = "https://ide-backend-i1s5.onrender.com/save-github"; // Updated Route
+
+let currentGitOwner = sessionStorage.getItem('ls_gh_owner') || null;
+let currentGitRepo = sessionStorage.getItem('ls_gh_repo') || null;
+let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
+
 
         let currentUser = null;
         let editorDesign = null;
@@ -629,11 +646,118 @@ Write your design and testbench, then click 'Run Code'.</span>
             }
         }
 
-        function logout() {
+// Check session storage on load to update the Connect button UI
+window.addEventListener('DOMContentLoaded', () => {
+    if(currentGitOwner && currentGitRepo) {
+        const btn = document.getElementById('btn-connect-git');
+        if(btn) btn.innerText = "Connected ✅";
+    }
+});
+
+function connectGitHub() {
+    const repoUrl = prompt("Enter your GitHub Repository URL:\n(e.g., https://github.com/username/repository)");
+    if (!repoUrl) return;
+
+    const pat = prompt("Enter your GitHub Personal Access Token (PAT):\n(Requires 'repo' scope. We only store this locally in your browser for this session).");
+    if (!pat) return;
+
+    // Extract username and repo name from the URL
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    
+    if (match) {
+        currentGitOwner = match[1];
+        currentGitRepo = match[2].replace('.git', ''); // strip .git if they copied the clone URL
+        currentGitPat = pat;
+
+        sessionStorage.setItem('ls_gh_owner', currentGitOwner);
+        sessionStorage.setItem('ls_gh_repo', currentGitRepo);
+        sessionStorage.setItem('ls_gh_pat', currentGitPat);
+
+        document.getElementById('btn-connect-git').innerText = "Connected ✅";
+        alert(`Successfully linked to ${currentGitOwner}/${currentGitRepo} for this session!`);
+    } else {
+        alert("Invalid GitHub URL. Please ensure it looks like: https://github.com/username/repo");
+    }
+}
+
+async function saveToGitHub() {
+    if (!currentGitOwner || !currentGitRepo || !currentGitPat) {
+        alert("Please connect your GitHub repository first from the Settings (⚙️) menu.");
+        return;
+    }
+
+    const token = sessionStorage.getItem('ls_jwt_token');
+    if(!token) {
+        alert("Security Error: No active session. Please log out and log in again.");
+        return;
+    }
+
+    // Capture latest editor content
+    if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
+    if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+
+    let defaultName = `project_${Date.now()}.sv`;
+    let filename = prompt(`Commit to ${currentGitOwner}/${currentGitRepo}\nEnter filename:`, defaultName);
+    
+    if (filename === null) return;
+    filename = filename.trim() || defaultName;
+    if (!filename.endsWith('.sv') && !filename.endsWith('.v') && !filename.endsWith('.txt')) filename += '.sv';
+
+    const fileContent = bundleFiles(); 
+    const base64Data = btoa(unescape(encodeURIComponent(fileContent))); 
+
+    const btn = document.getElementById('btn-save-git');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = `<div class="w-4 h-4 rounded-full border-2 border-slate-400 border-t-white animate-spin"></div><span class="hidden sm:inline">Pushing...</span>`;
+    btn.disabled = true;
+    btn.classList.add('opacity-70', 'cursor-not-allowed');
+
+    try {
+        const res = await fetch(GIT_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({
+                filename: filename,
+                fileBase64: base64Data,
+                owner: currentGitOwner,
+                repo: currentGitRepo,
+                pat: currentGitPat
+            })
+        });
+        
+        if (res.status === 401 || res.status === 403) throw new Error("UNAUTHORIZED: Invalid or expired session token.");
+
+        const data = await res.json();
+        
+        if(data.status === 'success') {
+            alert(`Successfully pushed to GitHub!\nView file: ${data.url}`);
+        } else {
+            alert(`GitHub Error: ${data.message}\nMake sure your PAT has the correct permissions and the repository exists.`);
+        }
+    } catch(err) {
+        console.error(err);
+        alert(err.message.includes("UNAUTHORIZED") ? err.message : "Network error while communicating with the backend server.");
+    } finally {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-not-allowed');
+    }
+}
+
+function logout() {
             sessionStorage.removeItem('ls_jwt_token'); // Destroy the token
             sessionStorage.removeItem('ls_playground_user');
             sessionStorage.removeItem('ls_last_vcd');
             currentUser = null;
+	    // Wipe Git Session
+    sessionStorage.removeItem('ls_gh_owner');
+    sessionStorage.removeItem('ls_gh_repo');
+    sessionStorage.removeItem('ls_gh_pat');
+    currentGitOwner = currentGitRepo = currentGitPat = null;
+
             document.getElementById('login-view').classList.add('active');
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('simulator-view').classList.remove('active');
