@@ -483,10 +483,14 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
         }
 
         window.onload = () => {
+            // WAKE UP PING: Fire a background request to Render immediately to start bootup
+            fetch("https://ide-backend-i1s5.onrender.com").catch(() => { /* Fire and forget silently */ });
+
             setInterval(cycleHeroContent, 6000);
 
             // Load Theme
             const savedTheme = localStorage.getItem('ls_theme');
+            // ... (keep the rest of your existing window.onload code exactly the same)
             if (savedTheme === 'dark') {
                 isDarkMode = true;
                 document.documentElement.classList.add('dark');
@@ -781,6 +785,8 @@ function logout() {
             if (editorDesign) { editorDesign.dispose(); editorDesign = null; }
             if (editorTb) { editorTb.dispose(); editorTb = null; }
         }
+
+
 
         // --- Multi-File Functions ---
         function renderTabs(paneType) {
