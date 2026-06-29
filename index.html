@@ -1149,96 +1149,100 @@ function logout() {
         // SECURE COMPILATION EXECUTION
         // ==========================================
         async function runSimulation() {
-            if(!editorDesign || !editorTb) return;
-            
-            const token = sessionStorage.getItem('ls_jwt_token');
-            if(!token) {
-                alert("Security Error: No active session. Please log out and log in again.");
-                return;
-            }
+    if(!editorDesign || !editorTb) return;
+    
+    const token = sessionStorage.getItem('ls_jwt_token');
+    if(!token) {
+        alert("Security Error: No active session. Please log out and log in again.");
+        return;
+    }
 
-            const btnRun = document.getElementById('btn-run');
-            const btnStop = document.getElementById('btn-stop');
-            const output = document.getElementById('terminal-output');
-            const waveBtn = document.getElementById('btn-waveform');
-            
-            // Switch UI to Running State
-            btnRun.classList.add('hidden');
-            btnStop.classList.remove('hidden');
-            btnStop.classList.add('flex');
-            waveBtn.classList.add('hidden'); 
+    const btnRun = document.getElementById('btn-run');
+    const btnStop = document.getElementById('btn-stop');
+    const output = document.getElementById('terminal-output');
+    const waveBtn = document.getElementById('btn-waveform');
+    
+    // Switch UI to Running State
+    btnRun.classList.add('hidden');
+    btnStop.classList.remove('hidden');
+    btnStop.classList.add('flex');
+    waveBtn.classList.add('hidden'); 
 
-            const logColor = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
-            output.innerHTML = `<span class="${logColor}">Initiating Secure SystemVerilog compilation pipeline...</span>\n`;
+    const logColor = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
+    output.innerHTML = `<span class="${logColor}">Initiating Secure SystemVerilog compilation pipeline...</span>\n`;
 
-            // Use the advanced multi-file preprocessor bundler!
-            const payloadCode = bundleFiles();
+    // Use the advanced multi-file preprocessor bundler!
+    const payloadCode = bundleFiles();
 
-            // Set up AbortController for manual stopping
-            abortController = new AbortController();
-            const signal = abortController.signal;
+    // Set up AbortController for manual stopping
+    abortController = new AbortController();
+    const signal = abortController.signal;
 
-            try {
-                // ATTACH THE JWT TOKEN TO THE HEADERS
-                const res = await fetch(VERILOG_API_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // <--- The VIP Pass
-                    },
-                    body: JSON.stringify({ code: payloadCode }),
-                    signal: signal
-                });
-                
-                const data = await res.json();
-                
-                // Security check failure handling
-                if (res.status === 401 || res.status === 403) {
-                    throw new Error("UNAUTHORIZED: " + (data.output || "Invalid token."));
-                }
-
-                // Clean up /tmp/ isolated directory paths from standard Icarus output
-                let processedOutput = data.output || "";
-                processedOutput = processedOutput.replace(/\/tmp\/[a-zA-Z0-9_.-]+\//g, "");
-
-                if (data.status === "success") {
-                    const successColor = isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
-                    output.innerHTML += `<span class="${successColor}">\n--- SIMULATION SUCCESS ---\n\n</span>`;
-                    const safeOutput = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    output.innerHTML += `<span>${safeOutput}</span>`;
-
-                    if (data.vcd) {
-                        sessionStorage.setItem('ls_last_vcd', data.vcd);
-                        waveBtn.classList.remove('hidden');
-                    }
-                } else {
-                    const errorColor = isDarkMode ? 'text-red-400' : 'text-red-600';
-                    output.innerHTML += `<span class="${errorColor}">\n--- COMPILATION/EXECUTION ERROR ---\n\n</span>`;
-                    const safeError = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    output.innerHTML += `<span class="${isDarkMode ? 'text-red-300' : 'text-red-500'}">${safeError}</span>`;
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    const abortColor = isDarkMode ? 'text-amber-400' : 'text-amber-600';
-                    output.innerHTML += `<span class="${abortColor}">\n--- SIMULATION ABORTED ---\n</span>`;
-                    output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">The simulation was manually stopped by the user.</span>`;
-                } else if (err.message.includes("UNAUTHORIZED")) {
-                    const secColor = isDarkMode ? 'text-red-500' : 'text-red-600';
-                    output.innerHTML += `<span class="${secColor}">\n--- SECURITY ERROR ---\n</span>`;
-                    output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">${err.message}</span>`;
-                } else {
-                    const netErrColor = isDarkMode ? 'text-red-500' : 'text-red-600';
-                    output.innerHTML += `<span class="${netErrColor}">\n--- NETWORK ERROR ---\n</span>`;
-                    output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">Failed to connect to the LogicSilicon compilation server. Please try again later.</span>`;
-                }
-            } finally {
-                // Revert UI to Default State
-                btnStop.classList.add('hidden');
-                btnStop.classList.remove('flex');
-                btnRun.classList.remove('hidden');
-                abortController = null;
-            }
+    try {
+        // ATTACH THE JWT TOKEN TO THE HEADERS
+        const res = await fetch(VERILOG_API_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // <--- The VIP Pass
+            },
+            body: JSON.stringify({ code: payloadCode }),
+            signal: signal
+        });
+        
+        const data = await res.json();
+        
+        // Security check failure handling
+        if (res.status === 401 || res.status === 403) {
+            throw new Error("UNAUTHORIZED: " + (data.output || "Invalid token."));
         }
+
+        // Clean up /tmp/ isolated directory paths from standard Icarus output
+        let processedOutput = data.output || "";
+        processedOutput = processedOutput.replace(/\/tmp\/[a-zA-Z0-9_.-]+\//g, "");
+
+        if (data.status === "success") {
+            const successColor = isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
+            output.innerHTML += `<span class="${successColor}">\n--- SIMULATION SUCCESS ---\n\n</span>`;
+            const safeOutput = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            output.innerHTML += `<span>${safeOutput}</span>`;
+
+            // === UPDATED VCD/JSON CAPTURE LOGIC ===
+            if (data.vcd) {
+                sessionStorage.setItem('ls_last_vcd', data.vcd);
+                sessionStorage.setItem('ls_vcd_json', JSON.stringify(data.vcdJson)); // Save pre-parsed JSON
+                waveBtn.classList.remove('hidden');
+            }
+            // =====================================
+
+        } else {
+            const errorColor = isDarkMode ? 'text-red-400' : 'text-red-600';
+            output.innerHTML += `<span class="${errorColor}">\n--- COMPILATION/EXECUTION ERROR ---\n\n</span>`;
+            const safeError = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            output.innerHTML += `<span class="${isDarkMode ? 'text-red-300' : 'text-red-500'}">${safeError}</span>`;
+        }
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            const abortColor = isDarkMode ? 'text-amber-400' : 'text-amber-600';
+            output.innerHTML += `<span class="${abortColor}">\n--- SIMULATION ABORTED ---\n</span>`;
+            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">The simulation was manually stopped by the user.</span>`;
+        } else if (err.message.includes("UNAUTHORIZED")) {
+            const secColor = isDarkMode ? 'text-red-500' : 'text-red-600';
+            output.innerHTML += `<span class="${secColor}">\n--- SECURITY ERROR ---\n</span>`;
+            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">${err.message}</span>`;
+        } else {
+            const netErrColor = isDarkMode ? 'text-red-500' : 'text-red-600';
+            output.innerHTML += `<span class="${netErrColor}">\n--- NETWORK ERROR ---\n</span>`;
+            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">Failed to connect to the LogicSilicon compilation server. Please try again later.</span>`;
+        }
+    } finally {
+        // Revert UI to Default State
+        btnStop.classList.add('hidden');
+        btnStop.classList.remove('flex');
+        btnRun.classList.remove('hidden');
+        abortController = null;
+    }
+}
 
         function stopSimulation() {
             if (abortController) {
@@ -1255,12 +1259,18 @@ function logout() {
         }
 
         window.openRTLViewer = function() {
-            if(!editorDesign) return;
-            const currentDesignCode = editorDesign.getValue();
-            // Save active design to session storage so the new tab can fetch it
-            sessionStorage.setItem('ls_rtl_code', currentDesignCode);
-            window.open('schematic.html', '_blank');
-        };
+    if(!editorDesign) return;
+    const currentDesignCode = editorDesign.getValue();
+    sessionStorage.setItem('ls_rtl_code', currentDesignCode);
+
+    // NEW: Save the Testbench code to session storage
+    if (editorTb) {
+        const currentTbCode = editorTb.getValue();
+        sessionStorage.setItem('ls_tb_code', currentTbCode);
+    }
+    
+    window.open('schematic.html', '_blank');
+};
 
         function initResizers() {
             const hResizer = document.getElementById('h-resizer');

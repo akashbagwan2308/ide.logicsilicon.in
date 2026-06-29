@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogicSilicon | Schematic Viewer</title>
-	<link rel="icon" type="image/svg+xml" href="favicon1.svg">
+    <link rel="icon" type="image/svg+xml" href="favicon1.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; transition: background-color 0.3s, color 0.3s; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
@@ -25,11 +25,19 @@
         #schematic-tooltip { position: absolute; pointer-events: none; padding: 6px 12px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; z-index: 100; display: none; white-space: pre; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
         #schematic-tooltip { background: rgba(255, 255, 255, 0.95); color: #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1; }
         .dark #schematic-tooltip { background: rgba(15, 23, 42, 0.95); color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.6); border: 1px solid #334155; }
+
+        /* Custom UI Slider styling */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #cbd5e1; border-radius: 2px; }
+        .dark input[type=range]::-webkit-slider-runnable-track { background: #334155; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #6366f1; margin-top: -6px; cursor: pointer; transition: transform 0.1s; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
     </style>
 </head>
 <body class="flex flex-col h-screen antialiased bg-slate-50 text-slate-900 dark:bg-[#0f172a] dark:text-slate-50">
 
     <div style="font-family: 'JetBrains Mono', monospace; position: absolute; left: -9999px; visibility: hidden;">preload</div>
+    <div style="font-family: 'Fira Code', monospace; position: absolute; left: -9999px; visibility: hidden;">preload</div>
 
     <header class="h-14 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-[#334155] flex items-center justify-between px-4 shrink-0 z-20 shadow-sm dark:shadow-md transition-colors">
         <div class="flex items-center gap-4">
@@ -70,6 +78,10 @@
             <button onclick="triggerSynthesis()" class="ml-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2">
                 ⚡ Resync
             </button>
+
+            <button onclick="toggleTBView()" id="btn-toggle-tb" class="ml-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2">
+                🧪 View with TB
+            </button>
         </div>
     </header>
 
@@ -97,9 +109,39 @@
                 <div id="breadcrumb-container" class="flex items-center gap-1.5 text-xs font-bold font-mono text-slate-600 dark:text-slate-300 hidden"></div>
                 <span id="render-status" class="absolute right-4 text-[10px] text-amber-500 dark:text-amber-400 font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-400/10 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-400/20">Waiting...</span>
             </div>
+            
             <div id="canvas-wrapper" class="flex-1 w-full relative overflow-hidden">
                 <canvas id="schematic-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
                 <div id="schematic-tooltip"></div>
+                
+                <div id="bottom-time-widget" onmousedown="event.stopPropagation()" ondblclick="event.stopPropagation()" onclick="event.stopPropagation()" class="hidden absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] shadow-[0_4px_20px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.6)] rounded-full px-4 py-2 flex items-center gap-3 z-50 transition-colors cursor-default">
+                    
+                    <div class="flex items-center gap-1">
+                        <button onclick="prevTransition(event)" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 flex items-center justify-center" title="Skip to Previous">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 20L9 12l10-8v16zM5 19h2V5H5v14z"></path></svg>
+                        </button>
+                        
+                        <button id="btn-play-pause" onclick="togglePlay(event)" class="p-2 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-full transition-colors text-indigo-600 dark:text-indigo-400 flex items-center justify-center" title="Auto Play">
+                            <svg id="icon-play" class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                            <svg id="icon-pause" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+                        </button>
+                        
+                        <button onclick="nextTransition(event)" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 flex items-center justify-center" title="Skip to Next">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M5 4l10 8-10 8V4zm14 1h-2v14h2V5z"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                    
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time</span>
+                        <input type="range" id="bottom-time-slider" class="w-48" min="0" max="100" value="0" oninput="manualTimeUpdate(this.value)">
+                        <span class="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold w-14 text-center flex items-baseline justify-center">
+                            <span id="bottom-time-display">0</span><span id="bottom-timescale-display" class="text-[10px] ml-1 text-slate-400">ns</span>
+                        </span>
+                    </div>
+
+                </div>
             </div>
         </div>
     </main>
@@ -109,12 +151,20 @@
         // 1. STATE & HIGH CONTRAST THEME
         // ==========================================
         let isDarkMode = true;
+        let showTestbench = false; 
         let editorInstance = null;
         let isEditorVisible = false;
         let dagGraph = null; 
         let fullNetlist = null;
         let hierarchyStack = [];
         
+        let parsedVCD = null;
+        let currentTime = 0;
+        
+        // AUTO-PLAYER STATE
+        let isPlaying = false;
+        let playInterval = null;
+
         const canvas = document.getElementById('schematic-canvas');
         const ctx = canvas.getContext('2d');
         const tooltip = document.getElementById('schematic-tooltip');
@@ -124,7 +174,6 @@
         let hoveredNode = null;
         let selectedNode = null; 
 
-        // NEW: Wire Drag State
         let hoveredEdge = null;
         let draggedEdge = null;
         let dragEdgeStartOffset = 0;
@@ -143,7 +192,11 @@
                 frame: '#475569', 
                 pin: '#f8fafc',         
                 selected: '#fde047',    
-                frameFill: 'rgba(15, 23, 42, 0.4)'
+                frameFill: 'rgba(15, 23, 42, 0.4)',
+                val1: '#10b981', // Emerald 500
+                val0: '#94a3b8', // Slate 400
+                valX: '#ef4444', // Red 500
+                valZ: '#eab308'  // Amber 500
             } : {
                 bg: '#ffffff', 
                 nodeBg: '#ffffff', 
@@ -157,7 +210,11 @@
                 frame: '#cbd5e1', 
                 pin: '#334155',
                 selected: '#eab308',    
-                frameFill: 'rgba(241, 245, 249, 0.6)' 
+                frameFill: 'rgba(241, 245, 249, 0.6)',
+                val1: '#059669', // Emerald 600
+                val0: '#475569', // Slate 600
+                valX: '#dc2626', // Red 600
+                valZ: '#d97706'  // Amber 600
             };
         }
 
@@ -192,11 +249,128 @@
             }, 10);
         }
 
+        window.toggleTBView = () => {
+            showTestbench = !showTestbench;
+            const btn = document.getElementById('btn-toggle-tb');
+            const timeWidget = document.getElementById('bottom-time-widget');
+            
+            if (showTestbench) {
+                btn.innerHTML = '👁️ Design Only';
+                btn.className = 'ml-2 px-4 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2';
+                if (parsedVCD) {
+                    timeWidget.classList.remove('hidden');
+                    timeWidget.classList.add('flex');
+                }
+            } else {
+                // Auto-pause if hiding the widget
+                if (isPlaying) window.togglePlay();
+
+                btn.innerHTML = '🧪 View with TB';
+                btn.className = 'ml-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2';
+                timeWidget.classList.add('hidden');
+                timeWidget.classList.remove('flex');
+            }
+
+            if (fullNetlist) {
+                const targetMod = hierarchyStack.length > 0 ? hierarchyStack[hierarchyStack.length - 1] : null;
+                dagGraph = buildGraphFromYosys(fullNetlist, targetMod);
+                selectedNode = null; hoveredEdge = null; draggedEdge = null;
+                fitCanvas();
+            }
+        };
+
+        // --- AUTO-PLAYER & TIME LOGIC ---
+
+        window.togglePlay = function(e) {
+            if(e) e.stopPropagation();
+            if(!parsedVCD) return;
+
+            isPlaying = !isPlaying;
+            const iconPlay = document.getElementById('icon-play');
+            const iconPause = document.getElementById('icon-pause');
+
+            if (isPlaying) {
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+                
+                // If at the end, restart from 0
+                if (currentTime >= parsedVCD.maxTime) {
+                    updateTime(0);
+                }
+
+                playInterval = setInterval(() => {
+                    let moved = window.nextTransition(null, true); // true = called from autoPlay
+                    if (!moved || currentTime >= parsedVCD.maxTime) {
+                        window.togglePlay(); // Auto stop at the end
+                    }
+                }, 1500); // Step every 1.5s
+            } else {
+                iconPlay.classList.remove('hidden');
+                iconPause.classList.add('hidden');
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+        };
+
+        window.manualTimeUpdate = function(val) {
+            if (isPlaying) window.togglePlay(); // Pause if user touches slider manually
+            updateTime(val);
+        };
+
+        window.updateTime = function(val) {
+            currentTime = parseInt(val);
+            document.getElementById('bottom-time-display').innerText = currentTime;
+            document.getElementById('bottom-time-slider').value = currentTime;
+            renderGraph();
+        };
+
+        window.prevTransition = function(e) {
+            if(e) e.stopPropagation();
+            if (isPlaying) window.togglePlay(); // Pause if user overrides
+            if (!parsedVCD) return;
+            
+            let target = 0;
+            let found = false;
+            parsedVCD.signals.forEach(sig => {
+                sig.transitions.forEach(t => {
+                    if (t.time < currentTime && t.time > target) {
+                        target = t.time;
+                        found = true;
+                    }
+                });
+            });
+            if (!found && currentTime > 0) target = 0;
+            updateTime(target);
+        };
+
+        window.nextTransition = function(e, fromAutoPlay = false) {
+            if(e) e.stopPropagation();
+            if (isPlaying && !fromAutoPlay) window.togglePlay(); // Pause if user overrides manually
+            
+            if (!parsedVCD) return false;
+            let target = parsedVCD.maxTime;
+            let found = false;
+            parsedVCD.signals.forEach(sig => {
+                sig.transitions.forEach(t => {
+                    if (t.time > currentTime && (!found || t.time < target)) {
+                        target = t.time;
+                        found = true;
+                    }
+                });
+            });
+            updateTime(target);
+            return found;
+        };
+
         // ==========================================
-        // 2. MONACO INITIALIZATION 
+        // 2. MONACO INITIALIZATION & DATA LOAD
         // ==========================================
         window.onload = () => {
             const passedCode = sessionStorage.getItem('ls_rtl_code') || "// Paste your Verilog code here";
+
+            // GUARANTEE VCD PARSING IMMEDIATELY ON LOAD
+            const vcdData = sessionStorage.getItem('ls_last_vcd');
+            if (vcdData) parseVCD(vcdData);
 
             document.fonts.ready.then(() => {
                 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
@@ -245,13 +419,120 @@
         });
 
         // ==========================================
-        // 3. API & SMART HIERARCHY ENGINE
+        // 3. API, SMART HIERARCHY & VCD PARSING
         // ==========================================
+        
+        function parseVCD(vcd) {
+            parsedVCD = { signals: [], maxTime: 0, timescaleUnit: 'ns' };
+            const lines = vcd.split('\n');
+            let varsMap = {}; 
+            let currentScope = [];
+            let maxT = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.startsWith('$timescale')) {
+                    const match = vcd.match(/\$timescale\s+([^$]+)\s+\$end/);
+                    if (match) parsedVCD.timescaleUnit = match[1].trim().replace(/[0-9\s]/g, '');
+                } else if (line.startsWith('$scope')) {
+                    const parts = line.split(/\s+/);
+                    currentScope.push(parts[2]);
+                } else if (line.startsWith('$upscope')) {
+                    currentScope.pop();
+                } else if (line.startsWith('$var')) {
+                    const parts = line.split(/\s+/);
+                    const type = parts[1];
+                    const size = parseInt(parts[2]);
+                    const id = parts[3];
+                    
+                    let rawName = parts.slice(4).join('');
+                    rawName = rawName.replace(/\$end$/, '').trim(); 
+
+                    const fullName = currentScope.join('.') + '.' + rawName;
+                    
+                    if (!varsMap[id]) varsMap[id] = { transitions: [] };
+                    
+                    parsedVCD.signals.push({ 
+                        id, name: fullName, baseName: rawName, size, type, 
+                        transitions: varsMap[id].transitions 
+                    });
+                } else if (line.startsWith('$dumpvars') || line.startsWith('$enddefinitions')) {
+                    break;
+                }
+            }
+
+            let currT = 0;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+                if (line.startsWith('$dumpvars') || line.startsWith('$enddefinitions') || line.startsWith('$end')) continue; 
+
+                if (line.startsWith('#')) {
+                    currT = parseInt(line.substring(1));
+                    if (currT > maxT) maxT = currT;
+                } else if (/^[01xzXZbB]/.test(line)) {
+                    let valStr = ''; let id = '';
+                    if (line.startsWith('b') || line.startsWith('B')) {
+                        const parts = line.split(/\s+/);
+                        valStr = parts[0].substring(1); id = parts[1];
+                    } else {
+                        valStr = line[0]; id = line.substring(1).trim();
+                    }
+                    if (varsMap[id]) varsMap[id].transitions.push({ time: currT, val: valStr });
+                }
+            }
+
+            parsedVCD.signals.forEach(sig => {
+                if (sig.transitions.length === 0 || sig.transitions[0].time !== 0) {
+                    sig.transitions.unshift({ time: 0, val: sig.size > 1 ? 'x' : 'x' });
+                }
+            });
+
+            parsedVCD.maxTime = maxT;
+        }
+
+        function getNodeValueFormatted(node) {
+            if (!parsedVCD || !node.baseName) return null;
+            
+            // ULTIMATE AGGRESSIVE MATCHING STRATEGY
+            let cleanNodeName = node.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+            
+            let sig = parsedVCD.signals.find(s => {
+                let vcdNameClean = s.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+                let vcdFullNameClean = s.name.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase(); 
+                
+                return vcdNameClean === cleanNodeName || 
+                       vcdFullNameClean === cleanNodeName || 
+                       vcdFullNameClean.endsWith('.' + cleanNodeName);
+            });
+            
+            if (!sig) return null;
+            
+            let currentVal = sig.transitions[0].val;
+            for (let i = 0; i < sig.transitions.length; i++) {
+                if (sig.transitions[i].time > currentTime) break;
+                currentVal = sig.transitions[i].val;
+            }
+            
+            let targetSize = node.numBits || sig.size || 1;
+
+            if (/^[01xzXZ]+$/.test(currentVal)) {
+                if (currentVal.length < targetSize) {
+                    let padChar = currentVal[0].toLowerCase() === 'x' ? 'x' : (currentVal[0].toLowerCase() === 'z' ? 'z' : '0');
+                    currentVal = currentVal.padStart(targetSize, padChar);
+                } else if (currentVal.length > targetSize) {
+                    currentVal = currentVal.substring(currentVal.length - targetSize); 
+                }
+            }
+            return { val: currentVal, size: targetSize };
+        }
+
         async function triggerSynthesis() {
             const code = editorInstance ? editorInstance.getValue() : (sessionStorage.getItem('ls_rtl_code') || "");
             const statusEl = document.getElementById('render-status');
             
-            // 1. Grab the token from session storage
             const token = sessionStorage.getItem('ls_jwt_token');
             if (!token) {
                 alert("Security Error: No active session. Please log in from the main playground.");
@@ -267,19 +548,17 @@
             statusEl.className = 'absolute right-4 text-[10px] text-sky-600 dark:text-sky-400 font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-400/10 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-400/20';
 
             try {
-                // 2. Attach the token to the fetch request headers
                 const response = await fetch('https://schematic-backend.onrender.com/api/synthesize', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // <--- The VIP Pass
+                        'Authorization': `Bearer ${token}` 
                     },
                     body: JSON.stringify({ code: code })
                 });
                 
                 const data = await response.json();
                 
-                // 3. Catch security rejections from the backend
                 if (response.status === 401 || response.status === 403) {
                     throw new Error("UNAUTHORIZED: " + (data.error || "Invalid token."));
                 }
@@ -294,6 +573,26 @@
                     statusEl.className = 'absolute right-4 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-400/20';
                     updateBreadcrumbUI();
                     fitCanvas();
+
+                    const timeWidget = document.getElementById('bottom-time-widget');
+                    if (parsedVCD) {
+                        if (showTestbench) {
+                            timeWidget.classList.remove('hidden');
+                            timeWidget.classList.add('flex');
+                        }
+                        const slider = document.getElementById('bottom-time-slider');
+                        slider.max = parsedVCD.maxTime;
+                        if (currentTime > parsedVCD.maxTime) currentTime = parsedVCD.maxTime;
+                        slider.value = currentTime;
+                        document.getElementById('bottom-time-display').innerText = currentTime;
+                        if (parsedVCD.timescaleUnit) {
+                            document.getElementById('bottom-timescale-display').innerText = parsedVCD.timescaleUnit;
+                        }
+                    } else {
+                        timeWidget.classList.add('hidden');
+                        timeWidget.classList.remove('flex');
+                    }
+                    renderGraph();
                 } else {
                     throw new Error(data.details || data.error || "Backend Synthesis Failed");
                 }
@@ -370,9 +669,58 @@
             }
         };
 
+        function parseTestbenchRTL(tbCode, topModuleName) {
+            const connections = [];
+            const variables = {};
+
+            const varRegex = /(?:logic|wire|reg|integer|int)\s+(?:\[(\d+):(\d+)\])?\s+([^;]+);/g;
+            let varMatch;
+            while ((varMatch = varRegex.exec(tbCode)) !== null) {
+                const msb = varMatch[1] ? parseInt(varMatch[1]) : null;
+                const lsb = varMatch[2] ? parseInt(varMatch[2]) : null;
+                const declarations = varMatch[3].split(',');
+
+                declarations.forEach(decl => {
+                    const name = decl.split('=')[0].trim();
+                    if (!name) return;
+
+                    if (msb !== null && lsb !== null) {
+                        variables[name] = { isVector: true, msb, lsb, bits: [] };
+                        const step = msb > lsb ? -1 : 1;
+                        for (let i = msb; msb > lsb ? i >= lsb : i <= lsb; i += step) {
+                            variables[name].bits.push(`${name}[${i}]`);
+                        }
+                    } else {
+                        variables[name] = { isVector: false, bits: [name] };
+                    }
+                });
+            }
+
+            const instRegex = new RegExp(`${topModuleName}\\s+\\w+\\s*\\(([\\s\\S]*?)\\);`, 'g');
+            const instMatch = instRegex.exec(tbCode);
+
+            if (instMatch) {
+                const portMapString = instMatch[1];
+                if (portMapString.trim() === '.*') {
+                    return { type: 'implicit', variables };
+                }
+
+                const portRegex = /\.\s*(\w+)\s*\(\s*([^)\s]+)\s*\)/g;
+                let portMatch;
+                while ((portMatch = portRegex.exec(portMapString)) !== null) {
+                    connections.push({
+                        port: portMatch[1],
+                        variable: portMatch[2]
+                    });
+                }
+            }
+
+            return { type: 'explicit', connections, variables };
+        }
+
         function buildGraphFromYosys(netlist, targetModule) {
             const g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
-            g.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 80, edgesep: 30 });
+            g.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 100, edgesep: 30 }); 
             g.setDefaultEdgeLabel(() => ({}));
 
             const modules = Object.keys(netlist.modules);
@@ -389,14 +737,10 @@
                         Object.values(cells).forEach(c => instantiated.add(c.type));
                     });
                     const rootModules = modules.filter(m => {
-    			if (instantiated.has(m))
-        			return false;
-
-    			const cells = netlist.modules[m].cells || {};
-
-    			// Ignore tiny leaf modules
-    			return Object.keys(cells).length > 0;
-			});
+                        if (instantiated.has(m)) return false;
+                        const cells = netlist.modules[m].cells || {};
+                        return Object.keys(cells).length > 0;
+                    });
                     
                     if (rootModules.length === 1) {
                         topModuleName = rootModules[0];
@@ -407,10 +751,7 @@
                             return countB - countA;
                         })[0];
                     } else {
-                        topModuleName =
-    modules.find(m =>
-        m.toLowerCase().includes("top")
-    ) || modules[0];
+                        topModuleName = modules.find(m => m.toLowerCase().includes("top")) || modules[0];
                     }
                 }
             }
@@ -421,28 +762,134 @@
             
             g.graph().name = topModuleName.replace('\\', ''); 
 
+            const isTopLevel = (hierarchyStack.length <= 1);
+            const includeTB = showTestbench && isTopLevel;
+
+            const tbCode = sessionStorage.getItem('ls_tb_code') || ""; 
+            const tbData = parseTestbenchRTL(tbCode, topModuleName.replace('\\', ''));
+
             const mod = netlist.modules[topModuleName];
             const bitDrivers = {}; 
+            const placedTbVars = new Set(); 
 
             if (mod.ports) {
                 for (const [portName, portData] of Object.entries(mod.ports)) {
                     const isInput = portData.direction === "input";
                     let portLabel = portName.replace('\\', '');
                     
-                    if (portData.bits && portData.bits.length > 1) {
-                        portLabel = `[${portData.bits.length - 1}:0] ${portLabel}`;
-                    }
                     const dynamicWidth = Math.max(50, portLabel.length * 8 + 20);
+                    const isPortVector = portData.bits && portData.bits.length > 1;
 
-                    g.setNode(portName, {
-                        label: portLabel, type: isInput ? 'input' : 'output',
-                        width: dynamicWidth, height: 36,
-                        inPorts: isInput ? [] : [portName],
-                        outPorts: isInput ? [portName] : [],
-                        flipH: false, flipV: false
-                    });
-                    if (isInput) portData.bits.forEach(bit => { bitDrivers[bit] = { node: portName, portIdx: 0 }; });
+                    if (isPortVector) {
+                        g.setNode(portName, {
+                            label: `[${portData.bits.length - 1}:0] ${portLabel}`,
+                            baseName: portLabel,
+                            type: isInput ? 'input' : 'output',
+                            isVector: true, numBits: portData.bits.length,
+                            width: Math.max(dynamicWidth, portData.bits.length * 20), height: 36,
+                            inPorts: isInput ? [] : portData.bits.map((_, i) => `${portName}_${i}`),
+                            outPorts: isInput ? portData.bits.map((_, i) => `${portName}_${i}`) : [],
+                            flipH: false, flipV: false
+                        });
+                    } else {
+                        g.setNode(portName, {
+                            label: portLabel,
+                            baseName: portLabel,
+                            type: isInput ? 'input' : 'output',
+                            isVector: false,
+                            width: dynamicWidth, height: 36,
+                            inPorts: isInput ? [] : [portName],
+                            outPorts: isInput ? [portName] : [],
+                            flipH: false, flipV: false
+                        });
+                    }
+
+                    if (includeTB) {
+                        let connectedVarName = portLabel; 
+                        if (tbData.type === 'explicit') {
+                            const explicitMap = tbData.connections.find(c => c.port === portLabel);
+                            if (explicitMap) connectedVarName = explicitMap.variable;
+                        }
+
+                        const tbVarInfo = tbData.variables[connectedVarName];
+                        const numBits = tbVarInfo ? tbVarInfo.bits.length : (portData.bits ? portData.bits.length : 1);
+
+                        placedTbVars.add(connectedVarName);
+
+                        if (isPortVector && numBits > 1) {
+                            const tbNodeName = `tb_${connectedVarName}`;
+                            
+                            g.setNode(tbNodeName, {
+                                label: connectedVarName,
+                                baseName: connectedVarName,
+                                type: 'tb_vector_component',
+                                numBits: numBits,
+                                width: numBits * 30, height: 36, 
+                                inPorts: isInput ? [] : Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`),
+                                outPorts: isInput ? Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`) : [],
+                                flipH: false, flipV: false
+                            });
+
+                            for(let i=0; i<numBits; i++) {
+                                if (isInput) {
+                                    g.setEdge(tbNodeName, portName, { srcPortIdx: i, tgtPortIdx: i }, `${tbNodeName}_bit${i}_to_${portName}`);
+                                } else {
+                                    g.setEdge(portName, tbNodeName, { srcPortIdx: i, tgtPortIdx: i }, `${portName}_bit${i}_to_${tbNodeName}`);
+                                }
+                            }
+                        } else {
+                            const tbNodeName = `tb_${connectedVarName}`;
+                            g.setNode(tbNodeName, {
+                                label: connectedVarName, 
+                                baseName: connectedVarName,
+                                type: 'tb_component',
+                                width: Math.max(44, connectedVarName.length * 8 + 10), height: 44,
+                                inPorts: [], outPorts: [],
+                                flipH: false, flipV: false
+                            });
+
+                            if (isInput) {
+                                g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
+                            } else {
+                                g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
+                            }
+                        }
+                    }
+
+                    if (isInput) {
+                        portData.bits.forEach((bit, idx) => { 
+                            bitDrivers[bit] = { node: portName, portIdx: isPortVector ? idx : 0 }; 
+                        });
+                    }
                 }
+            }
+
+            if (includeTB) {
+                Object.keys(tbData.variables).forEach(varName => {
+                    if (!placedTbVars.has(varName)) {
+                        const varInfo = tbData.variables[varName];
+                        const tbNodeName = `tb_internal_${varName}`;
+                        
+                        if (varInfo.isVector && varInfo.bits.length > 1) {
+                            g.setNode(tbNodeName, {
+                                label: varName, 
+                                baseName: varName,
+                                type: 'tb_vector_component', 
+                                numBits: varInfo.bits.length,
+                                width: varInfo.bits.length * 30, height: 36,
+                                inPorts: [], outPorts: [], flipH: false, flipV: false
+                            });
+                        } else {
+                            g.setNode(tbNodeName, {
+                                label: varName, 
+                                baseName: varName,
+                                type: 'tb_component',
+                                width: Math.max(44, varName.length * 8 + 10), height: 44,
+                                inPorts: [], outPorts: [], flipH: false, flipV: false
+                            });
+                        }
+                    }
+                });
             }
 
             if (mod.cells) {
@@ -522,17 +969,19 @@
                 for (const [portName, portData] of Object.entries(mod.ports)) {
                     if (portData.direction === "output") {
                         const driverGroups = {};
-                        portData.bits.forEach(bit => {
+                        portData.bits.forEach((bit, bitIdx) => {
                             const driver = bitDrivers[bit];
                             if (driver) {
                                 const key = `${driver.node}_${driver.portIdx}`;
-                                if(!driverGroups[key]) driverGroups[key] = { node: driver.node, portIdx: driver.portIdx };
+                                if(!driverGroups[key]) {
+                                    driverGroups[key] = { node: driver.node, srcPortIdx: driver.portIdx, tgtPortIdx: (portData.bits.length > 1 ? bitIdx : 0) };
+                                }
                             }
                         });
                         Object.values(driverGroups).forEach(grp => {
                             g.setEdge(grp.node, portName, { 
-                                srcPortIdx: grp.portIdx, tgtPortIdx: 0
-                            }, `${grp.node}_${portName}_${grp.portIdx}`);
+                                srcPortIdx: grp.srcPortIdx, tgtPortIdx: grp.tgtPortIdx
+                            }, `${grp.node}_${portName}_${grp.srcPortIdx}`);
                         });
                     }
                 }
@@ -557,39 +1006,85 @@
             ctx.closePath(); ctx.fill(); ctx.restore();
         }
 
-        function drawGate(ctx, x, y, w, h, type, colors) {
+        function drawGate(ctx, x, y, w, h, type, colors, node) {
             ctx.beginPath();
             ctx.fillStyle = colors.gateBg;
             ctx.strokeStyle = colors.nodeBorder;
             ctx.lineWidth = 2;
 
             if (type === 'and' || type === 'nand') {
-                ctx.moveTo(x, y); ctx.lineTo(x + w/2, y);
-                ctx.arc(x + w/2, y + h/2, h/2, -Math.PI/2, Math.PI/2);
-                ctx.lineTo(x, y + h); ctx.closePath();
-            } else if (type === 'or' || type === 'nor') {
                 ctx.moveTo(x, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + h/2);
-                ctx.quadraticCurveTo(x + w, y + h, x, y + h);
-                ctx.quadraticCurveTo(x + w/4, y + h/2, x, y);
-            } else if (type === 'xor' || type === 'xnor') {
-                ctx.moveTo(x + 6, y);
-                ctx.quadraticCurveTo(x + w, y, x + w, y + h/2);
-                ctx.quadraticCurveTo(x + w, y + h, x + 6, y + h);
-                ctx.quadraticCurveTo(x + w/4 + 6, y + h/2, x + 6, y);
-                ctx.fill(); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.quadraticCurveTo(x + w/4 - 2, y + h/2, x - 2, y + h);
-                ctx.stroke(); return; 
-            } else {
-                ctx.moveTo(x, y); ctx.lineTo(x + w - (type==='not'?6:0), y + h/2); ctx.lineTo(x, y + h); ctx.closePath();
+                ctx.lineTo(x + w/2, y);
+                ctx.arc(x + w/2, y + h/2, h/2, -Math.PI/2, Math.PI/2);
+                ctx.lineTo(x, y + h);
+                ctx.closePath();
+                ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+                ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
+            } 
+            else if (type === 'or' || type === 'nor') {
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + w/2, y, x + w, y + h/2);
+                ctx.quadraticCurveTo(x + w/2, y + h, x, y + h);
+                ctx.quadraticCurveTo(x + 12, y + h/2, x, y);
+                ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+                ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
+                
+                if (node && node.inPorts) {
+                    ctx.beginPath();
+                    node.inPorts.forEach((p, i) => {
+                        const pinY = y + (i + 1) * (h / (node.inPorts.length + 1));
+                        ctx.moveTo(x - 2, pinY);
+                        ctx.lineTo(x + 12, pinY);
+                    });
+                    ctx.stroke();
+                }
+            } 
+            else if (type === 'xor' || type === 'xnor') {
+                const offset = 8;
+                ctx.moveTo(x + offset, y);
+                ctx.quadraticCurveTo(x + w/2 + offset/2, y, x + w, y + h/2);
+                ctx.quadraticCurveTo(x + w/2 + offset/2, y + h, x + offset, y + h);
+                ctx.quadraticCurveTo(x + 12 + offset, y + h/2, x + offset, y);
+                ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+                ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(x + 12, y + h/2, x, y + h);
+                ctx.stroke();
+                
+                if (node && node.inPorts) {
+                    ctx.beginPath();
+                    node.inPorts.forEach((p, i) => {
+                        const pinY = y + (i + 1) * (h / (node.inPorts.length + 1));
+                        ctx.moveTo(x - 2, pinY);
+                        ctx.lineTo(x + 16, pinY);
+                    });
+                    ctx.stroke();
+                }
+            } 
+            else { 
+                const outX = type === 'not' ? (x + w - 8) : (x + w);
+                ctx.moveTo(x, y); 
+                ctx.lineTo(outX, y + h/2); 
+                ctx.lineTo(x, y + h); 
+                ctx.closePath();
+                ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
+                ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
             }
-            
-            ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
-            ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
-            
-            if(type === 'nand' || type === 'nor' || type === 'xnor' || type === 'not') {
-                ctx.beginPath(); ctx.arc(x + w + 3, y + h/2, 4.5, 0, 2*Math.PI); 
-                ctx.fillStyle = colors.gateBg; ctx.fill(); ctx.stroke();
+
+            if(type === 'nand' || type === 'nor' || type === 'xnor') {
+                ctx.beginPath(); 
+                ctx.arc(x + w + 4, y + h/2, 4, 0, 2*Math.PI); 
+                ctx.fillStyle = colors.gateBg; 
+                ctx.fill(); 
+                ctx.stroke();
+            } else if(type === 'not') {
+                ctx.beginPath(); 
+                ctx.arc(x + w - 4, y + h/2, 4, 0, 2*Math.PI); 
+                ctx.fillStyle = colors.gateBg; 
+                ctx.fill(); 
+                ctx.stroke();
             }
         }
 
@@ -599,30 +1094,66 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
 
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity; 
+            let tbMinX = Infinity, tbMinY = Infinity, tbMaxX = -Infinity, tbMaxY = -Infinity; 
             let hasInternalNodes = false;
+            let hasTBNodes = false;
             
             dagGraph.nodes().forEach(v => {
                 const node = dagGraph.node(v);
-                if (node.type === 'gate' || node.type === 'instance') {
+                if (!node || node.type === 'wire') return;
+
+                tbMinX = Math.min(tbMinX, node.x - node.width/2);
+                tbMinY = Math.min(tbMinY, node.y - node.height/2);
+                tbMaxX = Math.max(tbMaxX, node.x + node.width/2);
+                tbMaxY = Math.max(tbMaxY, node.y + node.height/2);
+
+                if (node.type.startsWith('tb_')) {
+                    hasTBNodes = true;
+                } else {
                     hasInternalNodes = true;
-                    minX = Math.min(minX, node.x - node.width/2); minY = Math.min(minY, node.y - node.height/2);
-                    maxX = Math.max(maxX, node.x + node.width/2); maxY = Math.max(maxY, node.y + node.height/2);
+                    minX = Math.min(minX, node.x - node.width/2);
+                    minY = Math.min(minY, node.y - node.height/2);
+                    maxX = Math.max(maxX, node.x + node.width/2);
+                    maxY = Math.max(maxY, node.y + node.height/2);
                 }
             });
 
+            if (hasTBNodes) {
+                const tbPad = 80;
+                ctx.beginPath(); 
+                ctx.rect(tbMinX - tbPad, tbMinY - tbPad, (tbMaxX - tbMinX) + tbPad*2, (tbMaxY - tbMinY) + tbPad*2);
+                ctx.fillStyle = colors.bg; 
+                ctx.strokeStyle = colors.nodeBorder; 
+                ctx.lineWidth = 1; 
+                ctx.stroke();
+                
+                ctx.fillStyle = colors.text; 
+                ctx.font = 'bold 20px "Inter"'; 
+                ctx.textAlign = 'left';
+                ctx.fillText("test_bench", tbMinX - tbPad + 15, tbMinY - tbPad + 25);
+            }
+
             if (hasInternalNodes) {
-                const pad = 60;
-                ctx.beginPath(); ctx.rect(minX - pad, minY - pad, (maxX - minX) + pad*2, (maxY - minY) + pad*2);
-                ctx.fillStyle = colors.frameFill; ctx.fill();
-                ctx.strokeStyle = colors.frame; ctx.lineWidth = 2; ctx.setLineDash([8, 6]); ctx.stroke(); ctx.setLineDash([]);
-                ctx.fillStyle = colors.text; ctx.font = 'bold 18px "Inter"'; ctx.textAlign = 'center';
-                ctx.fillText(dagGraph.graph().name || "Top Module", (minX + maxX)/2, minY - pad + 25);
+                const pad = hasTBNodes ? 40 : 60; 
+                ctx.beginPath(); 
+                ctx.roundRect(minX - pad, minY - pad, (maxX - minX) + pad*2, (maxY - minY) + pad*2, 16);
+                ctx.fillStyle = colors.frameFill; 
+                ctx.fill();
+                ctx.strokeStyle = colors.frame; 
+                ctx.lineWidth = 2; 
+                if (!hasTBNodes) ctx.setLineDash([8, 6]); 
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = colors.text; 
+                ctx.font = 'bold 16px "Inter"'; 
+                ctx.textAlign = 'center';
+                ctx.fillText(dagGraph.graph().name || "top_module", (minX + maxX)/2, minY - pad + 20);
             }
 
             dagGraph.edges().forEach(e => {
                 const edgeObj = dagGraph.edge(e);
-                // Initialize custom offsets for wire dragging
                 edgeObj.customOffset = edgeObj.customOffset || 0;
                 
                 const srcNode = dagGraph.node(e.v);
@@ -632,55 +1163,95 @@
                 const srcFlip = srcNode.flipH || false;
                 const tgtFlip = tgtNode.flipH || false;
 
-                const bubbleOffset = (['nand','nor','xnor','not'].includes(srcNode.gateType)) ? 8 : 0;
-                const startX = srcNode.x + (srcFlip ? -1 : 1) * (srcNode.width / 2 + bubbleOffset);
+                let bubbleOffset = 0;
+                if (['nand', 'nor', 'xnor'].includes(srcNode.gateType)) {
+                    bubbleOffset = 8;
+                } else if (srcNode.gateType === 'not') {
+                    bubbleOffset = 0; 
+                }
+                
+                let srcPinExt = 0;
+                if (srcNode.type === 'instance' || srcNode.type === 'input' || srcNode.type === 'output') srcPinExt = 8;
+                
+                let startX = srcNode.x + (srcFlip ? -1 : 1) * (srcNode.width / 2 + bubbleOffset + srcPinExt);
                 let startY = srcNode.y;
-                if (srcNode.outPorts && srcNode.outPorts.length > 0) {
+                
+                if (srcNode.type === 'tb_vector_component' || srcNode.isVector) {
+                    const bitWidth = srcNode.width / srcNode.numBits;
+                    const visualIdx = srcNode.numBits - 1 - edgeObj.srcPortIdx;
+                    startX = (srcNode.x - srcNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
+                    startY = srcNode.y + srcNode.height/2; 
+                } else if (srcNode.outPorts && srcNode.outPorts.length > 0) {
                     let idx = srcNode.flipV ? (srcNode.outPorts.length - 1 - edgeObj.srcPortIdx) : edgeObj.srcPortIdx;
                     startY = (srcNode.y - srcNode.height/2) + (idx + 1) * (srcNode.height / (srcNode.outPorts.length + 1));
                 }
 
-                const endX = tgtNode.x + (tgtFlip ? 1 : -1) * (tgtNode.width / 2);
+                let tgtPinExt = 0;
+                if (tgtNode.type === 'instance' || tgtNode.type === 'input' || tgtNode.type === 'output') tgtPinExt = 8;
+
+                let endX = tgtNode.x + (tgtFlip ? 1 : -1) * (tgtNode.width / 2 + tgtPinExt);
                 let endY = tgtNode.y;
-                if (tgtNode.inPorts && tgtNode.inPorts.length > 0) {
+                
+                if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
+                    const bitWidth = tgtNode.width / tgtNode.numBits;
+                    const visualIdx = tgtNode.numBits - 1 - edgeObj.tgtPortIdx;
+                    endX = (tgtNode.x - tgtNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
+                    endY = tgtNode.y + tgtNode.height/2;
+                } else if (tgtNode.inPorts && tgtNode.inPorts.length > 0) {
                     let idx = tgtNode.flipV ? (tgtNode.inPorts.length - 1 - edgeObj.tgtPortIdx) : edgeObj.tgtPortIdx;
                     endY = (tgtNode.y - tgtNode.height/2) + (idx + 1) * (tgtNode.height / (tgtNode.inPorts.length + 1));
                 }
 
-                const spreadX = (edgeObj.srcPortIdx || 0) * 6;
-                const spreadY = (edgeObj.tgtPortIdx || 0) * 6;
+                const spreadX = (srcNode.isVector || tgtNode.isVector) ? 0 : (edgeObj.srcPortIdx || 0) * 8;
+                const spreadY = (srcNode.isVector || tgtNode.isVector) ? (edgeObj.tgtPortIdx || 0) * 10 : (edgeObj.tgtPortIdx || 0) * 8;
 
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
 
-                const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
-                ctx.lineTo(outX, startY);
+                const srcIsBottom = srcNode.type === 'tb_vector_component' || srcNode.isVector;
+                const tgtIsBottom = tgtNode.type === 'tb_vector_component' || tgtNode.isVector;
 
-                const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
-
-                let hitSegment = null; // Stores coordinates for mouse hover/drag detection
-
-                if (!srcFlip && !tgtFlip && outX < inX) {
-                    let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
-                    ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
-                    hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
-                } else if (srcFlip && tgtFlip && outX > inX) {
-                    let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
-                    ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
-                    hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
+                if (srcIsBottom && tgtIsBottom) {
+                    const dropY = Math.max(startY, endY) + 30 + spreadY + edgeObj.customOffset;
+                    ctx.lineTo(startX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
+                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: startX, x2: endX };
+                } else if (srcIsBottom && !tgtIsBottom) {
+                    const dropY = startY + 30 + spreadY + edgeObj.customOffset;
+                    const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
+                    ctx.lineTo(startX, dropY); ctx.lineTo(inX, dropY); ctx.lineTo(inX, endY); ctx.lineTo(endX, endY);
+                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: startX, x2: inX };
+                } else if (!srcIsBottom && tgtIsBottom) {
+                    const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
+                    const dropY = endY + 30 + spreadY + edgeObj.customOffset;
+                    ctx.lineTo(outX, startY); ctx.lineTo(outX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
+                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: outX, x2: endX };
                 } else {
-                    const goUp = startY >= endY;
-                    const baseClearanceY = goUp ? (endY - 40 - spreadY) : (endY + 40 + spreadY);
-                    let clearanceY = baseClearanceY + edgeObj.customOffset;
-                    ctx.lineTo(outX, clearanceY); ctx.lineTo(inX, clearanceY); ctx.lineTo(inX, endY);
-                    hitSegment = { type: 'h', y: clearanceY, x1: outX, x2: inX };
+                    const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
+                    ctx.lineTo(outX, startY);
+                    const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
+
+                    let hitSegment = null;
+
+                    if (!srcFlip && !tgtFlip && outX < inX) {
+                        let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
+                        ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
+                        hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
+                    } else if (srcFlip && tgtFlip && outX > inX) {
+                        let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
+                        ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
+                        hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
+                    } else {
+                        const goUp = startY >= endY;
+                        const baseClearanceY = goUp ? (endY - 40 - spreadY) : (endY + 40 + spreadY);
+                        let clearanceY = baseClearanceY + edgeObj.customOffset;
+                        ctx.lineTo(outX, clearanceY); ctx.lineTo(inX, clearanceY); ctx.lineTo(inX, endY);
+                        hitSegment = { type: 'h', y: clearanceY, x1: outX, x2: inX };
+                    }
+
+                    edgeObj._hitSegment = hitSegment; 
+                    ctx.lineTo(endX, endY);
                 }
-
-                edgeObj._hitSegment = hitSegment; // Save to object for mouse events
-
-                ctx.lineTo(endX, endY);
                 
-                // Highlight wire if hovered or dragged
                 if (hoveredEdge === e || draggedEdge === e) {
                     ctx.strokeStyle = colors.wireHover; 
                     ctx.lineWidth = 3.5; 
@@ -690,9 +1261,15 @@
                 }
                 
                 ctx.stroke();
-                drawArrowhead(ctx, endX + (tgtFlip ? 1 : -1), endY, tgtFlip ? Math.PI : 0, 6, ctx.strokeStyle);
+                
+                if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
+                    drawArrowhead(ctx, endX, endY, -Math.PI/2, 6, ctx.strokeStyle);
+                } else if (tgtNode.type !== 'gate') {
+                    drawArrowhead(ctx, endX, endY, tgtFlip ? Math.PI : 0, 6, ctx.strokeStyle);
+                }
             });
 
+            // 3. Update Node Drawing
             dagGraph.nodes().forEach(v => {
                 const node = dagGraph.node(v);
                 if (node.type === 'wire') return; 
@@ -704,7 +1281,7 @@
                 ctx.translate(node.x, node.y);
                 ctx.scale(node.flipH ? -1 : 1, node.flipV ? -1 : 1);
                 
-                ctx.fillStyle = (node.type === 'input' || node.type === 'output') ? colors.ioBg : colors.gateBg;
+                ctx.fillStyle = (node.type === 'input' || node.type === 'output' || node.type.startsWith('tb_')) ? colors.ioBg : colors.gateBg;
                 
                 if (selectedNode === v) {
                     ctx.strokeStyle = colors.selected;
@@ -718,33 +1295,97 @@
                 }
 
                 if (node.type === 'gate') {
-                    drawGate(ctx, -w2, -h2, w, h, node.gateType, colors);
+                    drawGate(ctx, -w2, -h2, w, h, node.gateType, colors, node);
+                } else if (node.type === 'tb_vector_component' || node.isVector) {
+                    const bitWidth = w / node.numBits;
+                    ctx.beginPath(); ctx.rect(-w2, -h2, w, h);
+                    ctx.shadowColor = colors.shadow; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+                    ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
+                    
+                    ctx.beginPath();
+                    for(let i = 1; i < node.numBits; i++) {
+                        ctx.moveTo(-w2 + i * bitWidth, -h2);
+                        ctx.lineTo(-w2 + i * bitWidth, h2);
+                    }
+                    ctx.stroke();
+                } else if (node.type === 'tb_component') {
+                    ctx.beginPath(); ctx.rect(-w2, -h2, w, h);
+                    ctx.shadowColor = colors.shadow; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+                    ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
                 } else {
                     ctx.beginPath(); ctx.roundRect(-w2, -h2, w, h, 6);
                     ctx.shadowColor = colors.shadow; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
                     ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
                 }
 
-                ctx.fillStyle = colors.pin;
-                if (node.inPorts && node.type !== 'input' && node.type !== 'output') {
+                ctx.strokeStyle = colors.nodeBorder;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                if (node.inPorts && !node.isVector && !node.type.startsWith('tb_') && node.type !== 'gate') {
                     node.inPorts.forEach((p, i) => {
                         const pinY = -h2 + (i + 1) * (h / (node.inPorts.length + 1));
-                        ctx.fillRect(-w2 - 4, pinY - 2, 4, 4);
+                        ctx.moveTo(-w2 - 8, pinY);
+                        ctx.lineTo(-w2, pinY);
                     });
                 }
-                if (node.outPorts && node.type !== 'input' && node.type !== 'output') {
+                if (node.outPorts && !node.isVector && !node.type.startsWith('tb_') && node.type !== 'gate') {
                     node.outPorts.forEach((p, i) => {
                         const pinY = -h2 + (i + 1) * (h / (node.outPorts.length + 1));
-                        const xOffset = (['nand','nor','xnor','not'].includes(node.gateType)) ? 8 : 0;
-                        ctx.fillRect(w2 + xOffset, pinY - 2, 4, 4);
+                        ctx.moveTo(w2, pinY);
+                        ctx.lineTo(w2 + 8, pinY);
                     });
                 }
+                ctx.stroke();
 
-                ctx.restore();
+                ctx.restore(); // Undo flip/scale for perfect text rendering
 
+                // 4. Update Text Labels and Exact Binary Bit Placement
                 ctx.fillStyle = colors.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                if (node.type === 'input' || node.type === 'output') {
-                    ctx.font = 'bold 14px "Inter"'; ctx.fillText(node.label, node.x, node.y);
+                
+                const isBoxNode = node.type === 'input' || node.type === 'output' || node.type === 'tb_component' || node.type === 'tb_vector_component';
+
+                if (isBoxNode) {
+                    ctx.font = 'bold 13px "JetBrains Mono"';
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText(node.label, node.x, node.y - node.height/2 - 14);
+
+                    // Fetch the live simulated value mapped exactly to the time slider
+                    const simNode = getNodeValueFormatted(node);
+                    
+                    // Fallback string if mapping fails so user knows it's empty
+                    let valString = simNode ? simNode.val : "?".repeat(node.numBits || 1);
+                    let targetSize = node.numBits || 1;
+                    
+                    ctx.font = 'bold 16px "Fira Code", monospace';
+                    
+                    if (node.isVector || node.type === 'tb_vector_component') {
+                        const bitWidth = node.width / targetSize;
+                        
+                        // Iterate to drop exactly one bit in the dead-center of each subdivider box
+                        for (let i = 0; i < targetSize; i++) {
+                            let bitChar = valString[i] || '?';
+                            let bitCenterX = node.x - node.width/2 + (i * bitWidth) + (bitWidth / 2);
+                            
+                            if (bitChar === '?') ctx.fillStyle = colors.text; 
+                            else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
+                            else if (bitChar.toLowerCase() === 'z') ctx.fillStyle = colors.valZ;
+                            else if (bitChar === '1') ctx.fillStyle = colors.val1;
+                            else ctx.fillStyle = colors.val0;
+
+                            ctx.fillText(bitChar, bitCenterX, node.y + 1);
+                        }
+                    } else {
+                        // Scalar (1-bit) drops directly in center
+                        let bitChar = valString[0] || '?';
+                        if (bitChar === '?') ctx.fillStyle = colors.text; 
+                        else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
+                        else if (bitChar.toLowerCase() === 'z') ctx.fillStyle = colors.valZ;
+                        else if (bitChar === '1') ctx.fillStyle = colors.val1;
+                        else ctx.fillStyle = colors.val0;
+
+                        ctx.fillText(bitChar, node.x, node.y + 1);
+                    }
+                    
                 } else if (node.type === 'instance') {
                     ctx.font = 'bold 16px "Inter"'; ctx.fillText(node.label, node.x, node.y - 14);
                     ctx.font = '13px "JetBrains Mono"'; ctx.fillStyle = colors.nodeBorder; ctx.fillText(node.subLabel, node.x, node.y + 16);
@@ -762,6 +1403,8 @@
         // ==========================================
         
         wrapper.addEventListener('dblclick', (e) => {
+            // STOP THE BUBBLING POPUP BUG HERE
+            if (e.target.closest('#bottom-time-widget')) return; 
             navigateDown();
         });
 
@@ -817,6 +1460,9 @@
         let dragOffsetX = 0, dragOffsetY = 0;
 
         wrapper.addEventListener('mousedown', (e) => { 
+            // PREVENT DRAGGING WHEN CLICKING WIDGET
+            if (e.target.closest('#bottom-time-widget')) return;
+
             const rect = canvas.getBoundingClientRect();
             const mx = (e.clientX - rect.left - panX) / scale;
             const my = (e.clientY - rect.top - panY) / scale;
@@ -847,7 +1493,6 @@
                 wrapper.style.cursor = 'grabbing';
                 renderGraph(); 
             } else if (hoveredEdge) {
-                // START DRAGGING WIRE
                 draggedEdge = hoveredEdge;
                 const edge = dagGraph.edge(draggedEdge);
                 dragEdgeStartOffset = edge.customOffset || 0;
@@ -890,9 +1535,10 @@
 
                 renderGraph();
             } else if (draggedEdge) {
-                // UPDATE WIRE CUSTOM OFFSET
                 const edge = dagGraph.edge(draggedEdge);
                 const seg = edge._hitSegment;
+                if (!seg) return;
+                
                 if (seg.type === 'v') {
                     edge.customOffset = dragEdgeStartOffset + (mx - startDragX);
                 } else {
@@ -904,7 +1550,6 @@
                 let foundNode = null;
                 let foundEdge = null;
                 
-                // 1. Check Node Hit
                 dagGraph.nodes().forEach(v => {
                     const node = dagGraph.node(v); 
                     if (node.type === 'wire') return;
@@ -928,16 +1573,15 @@
                     }
                 });
 
-                // 2. Check Edge Segment Hit (Only if no node is found)
                 if (!foundNode) {
                     dagGraph.edges().forEach(e => {
                         const edgeObj = dagGraph.edge(e);
                         const seg = edgeObj._hitSegment;
                         if (seg) {
                             if (seg.type === 'v') {
-                                if (Math.abs(mx - seg.x) < 8 && my >= Math.min(seg.y1, seg.y2) - 5 && my <= Math.max(seg.y1, seg.y2) + 5) foundEdge = e;
+                                if (Math.abs(mx - seg.x) < 12 && my >= Math.min(seg.y1, seg.y2) - 5 && my <= Math.max(seg.y1, seg.y2) + 5) foundEdge = e;
                             } else {
-                                if (Math.abs(my - seg.y) < 8 && mx >= Math.min(seg.x1, seg.x2) - 5 && mx <= Math.max(seg.x1, seg.x2) + 5) foundEdge = e;
+                                if (Math.abs(my - seg.y) < 12 && mx >= Math.min(seg.x1, seg.x2) - 5 && mx <= Math.max(seg.x1, seg.x2) + 5) foundEdge = e;
                             }
                         }
                     });
@@ -945,11 +1589,9 @@
                 
                 let needsRender = false;
 
-                // Update Hover States
                 if (foundNode !== hoveredNode) { hoveredNode = foundNode; needsRender = true; }
                 if (foundEdge !== hoveredEdge) { hoveredEdge = foundEdge; needsRender = true; }
                 
-                // Update Cursor
                 if (hoveredNode) {
                     wrapper.style.cursor = 'pointer';
                 } else if (hoveredEdge) {
