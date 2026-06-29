@@ -161,7 +161,6 @@
         let parsedVCD = null;
         let currentTime = 0;
         
-        // AUTO-PLAYER STATE
         let isPlaying = false;
         let playInterval = null;
 
@@ -262,7 +261,6 @@
                     timeWidget.classList.add('flex');
                 }
             } else {
-                // Auto-pause if hiding the widget
                 if (isPlaying) window.togglePlay();
 
                 btn.innerHTML = '🧪 View with TB';
@@ -279,8 +277,6 @@
             }
         };
 
-        // --- AUTO-PLAYER & TIME LOGIC ---
-
         window.togglePlay = function(e) {
             if(e) e.stopPropagation();
             if(!parsedVCD) return;
@@ -293,17 +289,14 @@
                 iconPlay.classList.add('hidden');
                 iconPause.classList.remove('hidden');
                 
-                // If at the end, restart from 0
-                if (currentTime >= parsedVCD.maxTime) {
-                    updateTime(0);
-                }
+                if (currentTime >= parsedVCD.maxTime) updateTime(0);
 
                 playInterval = setInterval(() => {
-                    let moved = window.nextTransition(null, true); // true = called from autoPlay
+                    let moved = window.nextTransition(null, true);
                     if (!moved || currentTime >= parsedVCD.maxTime) {
-                        window.togglePlay(); // Auto stop at the end
+                        window.togglePlay();
                     }
-                }, 1500); // Step every 1.5s
+                }, 1500);
             } else {
                 iconPlay.classList.remove('hidden');
                 iconPause.classList.add('hidden');
@@ -313,7 +306,7 @@
         };
 
         window.manualTimeUpdate = function(val) {
-            if (isPlaying) window.togglePlay(); // Pause if user touches slider manually
+            if (isPlaying) window.togglePlay(); 
             updateTime(val);
         };
 
@@ -326,7 +319,7 @@
 
         window.prevTransition = function(e) {
             if(e) e.stopPropagation();
-            if (isPlaying) window.togglePlay(); // Pause if user overrides
+            if (isPlaying) window.togglePlay(); 
             if (!parsedVCD) return;
             
             let target = 0;
@@ -345,7 +338,7 @@
 
         window.nextTransition = function(e, fromAutoPlay = false) {
             if(e) e.stopPropagation();
-            if (isPlaying && !fromAutoPlay) window.togglePlay(); // Pause if user overrides manually
+            if (isPlaying && !fromAutoPlay) window.togglePlay(); 
             
             if (!parsedVCD) return false;
             let target = parsedVCD.maxTime;
@@ -362,13 +355,9 @@
             return found;
         };
 
-        // ==========================================
-        // 2. MONACO INITIALIZATION & DATA LOAD
-        // ==========================================
         window.onload = () => {
             const passedCode = sessionStorage.getItem('ls_rtl_code') || "// Paste your Verilog code here";
 
-            // GUARANTEE VCD PARSING IMMEDIATELY ON LOAD
             const vcdData = sessionStorage.getItem('ls_last_vcd');
             if (vcdData) parseVCD(vcdData);
 
@@ -418,10 +407,6 @@
             }
         });
 
-        // ==========================================
-        // 3. API, SMART HIERARCHY & VCD PARSING
-        // ==========================================
-        
         function parseVCD(vcd) {
             parsedVCD = { signals: [], maxTime: 0, timescaleUnit: 'ns' };
             const lines = vcd.split('\n');
@@ -493,19 +478,21 @@
             parsedVCD.maxTime = maxT;
         }
 
-        function getNodeValueFormatted(node) {
-            if (!parsedVCD || !node.baseName) return null;
+        function getNodeValueFormatted(queryObj) {
+            if (!parsedVCD || !queryObj.baseName) return null;
             
-            // ULTIMATE AGGRESSIVE MATCHING STRATEGY
-            let cleanNodeName = node.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+            // AGGRESSIVE STRIP: Remove all brackets, spaces, backslashes for pure alphanumeric matching
+            let exactName = queryObj.baseName.toLowerCase().replace(/\s+/g, ''); 
+            let cleanName = exactName.replace(/\[.*?\]/g, ''); // e.g. "mem[1][0]" -> "mem"
             
             let sig = parsedVCD.signals.find(s => {
-                let vcdNameClean = s.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-                let vcdFullNameClean = s.name.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase(); 
+                let vName = s.baseName.toLowerCase().replace(/\s+/g, '');
+                let vFull = s.name.toLowerCase().replace(/\s+/g, ''); 
                 
-                return vcdNameClean === cleanNodeName || 
-                       vcdFullNameClean === cleanNodeName || 
-                       vcdFullNameClean.endsWith('.' + cleanNodeName);
+                // Matches perfect exact (like 'a' or 'mem[1][0]') or trailing scopes (tb.a)
+                let matchVName = vName === exactName || (vName.startsWith(exactName + '[') && !exactName.endsWith(']'));
+                let matchVFull = vFull === exactName || vFull.endsWith('.' + exactName) || (vFull.includes('.' + exactName + '['));
+                return matchVName || matchVFull;
             });
             
             if (!sig) return null;
@@ -516,7 +503,7 @@
                 currentVal = sig.transitions[i].val;
             }
             
-            let targetSize = node.numBits || sig.size || 1;
+            let targetSize = queryObj.numBits || sig.size || 1;
 
             if (/^[01xzXZ]+$/.test(currentVal)) {
                 if (currentVal.length < targetSize) {
@@ -669,6 +656,7 @@
             }
         };
 
+        // --- ENHANCED AST TESTBENCH PARSER FOR 2D MEMORY ---
         function parseTestbenchRTL(tbCode, topModuleName) {
             const connections = [];
             const variables = {};
@@ -681,17 +669,35 @@
                 const declarations = varMatch[3].split(',');
 
                 declarations.forEach(decl => {
-                    const name = decl.split('=')[0].trim();
-                    if (!name) return;
+                    let cleanDecl = decl.split('=')[0].trim();
+                    let nameMatch = cleanDecl.match(/^([a-zA-Z0-9_]+)((\s*\[\d+:\d+\])*)$/);
+                    
+                    let unpackedDims = [];
+                    let name = cleanDecl;
+                    
+                    if (nameMatch) {
+                         name = nameMatch[1];
+                         if (nameMatch[2]) {
+                             let dimsRegex = /\[(\d+):(\d+)\]/g;
+                             let dim;
+                             while ((dim = dimsRegex.exec(nameMatch[2])) !== null) {
+                                 let d1 = parseInt(dim[1]);
+                                 let d2 = parseInt(dim[2]);
+                                 unpackedDims.push({ 
+                                     start: Math.min(d1, d2), 
+                                     end: Math.max(d1, d2),
+                                     size: Math.abs(d1 - d2) + 1,
+                                     orig1: d1,
+                                     orig2: d2
+                                 });
+                             }
+                         }
+                    }
 
                     if (msb !== null && lsb !== null) {
-                        variables[name] = { isVector: true, msb, lsb, bits: [] };
-                        const step = msb > lsb ? -1 : 1;
-                        for (let i = msb; msb > lsb ? i >= lsb : i <= lsb; i += step) {
-                            variables[name].bits.push(`${name}[${i}]`);
-                        }
+                        variables[name] = { isVector: true, msb, lsb, unpackedDims: unpackedDims };
                     } else {
-                        variables[name] = { isVector: false, bits: [name] };
+                        variables[name] = { isVector: false, unpackedDims: unpackedDims };
                     }
                 });
             }
@@ -718,6 +724,7 @@
             return { type: 'explicit', connections, variables };
         }
 
+        // --- GRAPH BUILDER (WITH MEMORY SUPPORT) ---
         function buildGraphFromYosys(netlist, targetModule) {
             const g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
             g.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 100, edgesep: 30 }); 
@@ -811,47 +818,57 @@
                             if (explicitMap) connectedVarName = explicitMap.variable;
                         }
 
-                        const tbVarInfo = tbData.variables[connectedVarName];
-                        const numBits = tbVarInfo ? tbVarInfo.bits.length : (portData.bits ? portData.bits.length : 1);
-
-                        placedTbVars.add(connectedVarName);
-
-                        if (isPortVector && numBits > 1) {
+                        const varInfo = tbData.variables[connectedVarName];
+                        if (varInfo) {
+                            placedTbVars.add(connectedVarName);
+                            let bits = varInfo.isVector ? (Math.abs(varInfo.msb - varInfo.lsb) + 1) : 1;
                             const tbNodeName = `tb_${connectedVarName}`;
-                            
-                            g.setNode(tbNodeName, {
-                                label: connectedVarName,
-                                baseName: connectedVarName,
-                                type: 'tb_vector_component',
-                                numBits: numBits,
-                                width: numBits * 30, height: 36, 
-                                inPorts: isInput ? [] : Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`),
-                                outPorts: isInput ? Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`) : [],
-                                flipH: false, flipV: false
-                            });
 
-                            for(let i=0; i<numBits; i++) {
-                                if (isInput) {
-                                    g.setEdge(tbNodeName, portName, { srcPortIdx: i, tgtPortIdx: i }, `${tbNodeName}_bit${i}_to_${portName}`);
-                                } else {
-                                    g.setEdge(portName, tbNodeName, { srcPortIdx: i, tgtPortIdx: i }, `${portName}_bit${i}_to_${tbNodeName}`);
+                            if (varInfo.unpackedDims && varInfo.unpackedDims.length > 0) {
+                                // Usually ports aren't unpacked arrays, but just in case
+                                let dim1 = varInfo.unpackedDims[0];
+                                let dim2 = varInfo.unpackedDims.length > 1 ? varInfo.unpackedDims[1] : {start:0, end:0, size:1};
+                                
+                                let rows = dim1.size;
+                                let cols = dim2.size;
+                                
+                                g.setNode(tbNodeName, {
+                                    label: connectedVarName,
+                                    baseName: connectedVarName,
+                                    type: 'tb_memory',
+                                    numBits: bits,
+                                    unpackedDims: varInfo.unpackedDims,
+                                    isVector: varInfo.isVector, msb: varInfo.msb, lsb: varInfo.lsb,
+                                    width: cols * bits * 20 + (cols-1)*16 + 40, 
+                                    height: rows * 26 + 60,
+                                    inPorts: [], outPorts: [], flipH: false, flipV: false
+                                });
+                            } else if (bits > 1) {
+                                g.setNode(tbNodeName, {
+                                    label: connectedVarName,
+                                    baseName: connectedVarName,
+                                    type: 'tb_vector_component',
+                                    numBits: bits,
+                                    width: bits * 30, height: 36, 
+                                    inPorts: isInput ? [] : Array.from({length: bits}, (_, i) => `${tbNodeName}_${i}`),
+                                    outPorts: isInput ? Array.from({length: bits}, (_, i) => `${tbNodeName}_${i}`) : [],
+                                    flipH: false, flipV: false
+                                });
+                                for(let i=0; i<bits; i++) {
+                                    if (isInput) g.setEdge(tbNodeName, portName, { srcPortIdx: i, tgtPortIdx: i }, `${tbNodeName}_bit${i}_to_${portName}`);
+                                    else g.setEdge(portName, tbNodeName, { srcPortIdx: i, tgtPortIdx: i }, `${portName}_bit${i}_to_${tbNodeName}`);
                                 }
-                            }
-                        } else {
-                            const tbNodeName = `tb_${connectedVarName}`;
-                            g.setNode(tbNodeName, {
-                                label: connectedVarName, 
-                                baseName: connectedVarName,
-                                type: 'tb_component',
-                                width: Math.max(44, connectedVarName.length * 8 + 10), height: 44,
-                                inPorts: [], outPorts: [],
-                                flipH: false, flipV: false
-                            });
-
-                            if (isInput) {
-                                g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
                             } else {
-                                g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
+                                g.setNode(tbNodeName, {
+                                    label: connectedVarName, 
+                                    baseName: connectedVarName,
+                                    type: 'tb_component',
+                                    width: Math.max(44, connectedVarName.length * 8 + 10), height: 44,
+                                    inPorts: [], outPorts: [],
+                                    flipH: false, flipV: false
+                                });
+                                if (isInput) g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
+                                else g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
                             }
                         }
                     }
@@ -869,14 +886,33 @@
                     if (!placedTbVars.has(varName)) {
                         const varInfo = tbData.variables[varName];
                         const tbNodeName = `tb_internal_${varName}`;
+                        let bits = varInfo.isVector ? (Math.abs(varInfo.msb - varInfo.lsb) + 1) : 1;
                         
-                        if (varInfo.isVector && varInfo.bits.length > 1) {
+                        if (varInfo.unpackedDims && varInfo.unpackedDims.length > 0) {
+                            let dim1 = varInfo.unpackedDims[0];
+                            let dim2 = varInfo.unpackedDims.length > 1 ? varInfo.unpackedDims[1] : {start:0, end:0, size:1};
+                            
+                            let rows = dim1.size;
+                            let cols = dim2.size;
+                            
+                            g.setNode(tbNodeName, {
+                                label: varName,
+                                baseName: varName,
+                                type: 'tb_memory',
+                                numBits: bits,
+                                unpackedDims: varInfo.unpackedDims,
+                                isVector: varInfo.isVector, msb: varInfo.msb, lsb: varInfo.lsb,
+                                width: cols * bits * 20 + (cols-1)*16 + 40, 
+                                height: rows * 26 + 60,
+                                inPorts: [], outPorts: [], flipH: false, flipV: false
+                            });
+                        } else if (bits > 1) {
                             g.setNode(tbNodeName, {
                                 label: varName, 
                                 baseName: varName,
                                 type: 'tb_vector_component', 
-                                numBits: varInfo.bits.length,
-                                width: varInfo.bits.length * 30, height: 36,
+                                numBits: bits,
+                                width: bits * 30, height: 36,
                                 inPorts: [], outPorts: [], flipH: false, flipV: false
                             });
                         } else {
@@ -1181,6 +1217,10 @@
                     const visualIdx = srcNode.numBits - 1 - edgeObj.srcPortIdx;
                     startX = (srcNode.x - srcNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
                     startY = srcNode.y + srcNode.height/2; 
+                } else if (srcNode.type === 'tb_memory') {
+                    // Start wires from bottom center of the memory block
+                    startX = srcNode.x;
+                    startY = srcNode.y + srcNode.height/2;
                 } else if (srcNode.outPorts && srcNode.outPorts.length > 0) {
                     let idx = srcNode.flipV ? (srcNode.outPorts.length - 1 - edgeObj.srcPortIdx) : edgeObj.srcPortIdx;
                     startY = (srcNode.y - srcNode.height/2) + (idx + 1) * (srcNode.height / (srcNode.outPorts.length + 1));
@@ -1197,19 +1237,23 @@
                     const visualIdx = tgtNode.numBits - 1 - edgeObj.tgtPortIdx;
                     endX = (tgtNode.x - tgtNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
                     endY = tgtNode.y + tgtNode.height/2;
+                } else if (tgtNode.type === 'tb_memory') {
+                    // Connect to bottom center
+                    endX = tgtNode.x;
+                    endY = tgtNode.y + tgtNode.height/2;
                 } else if (tgtNode.inPorts && tgtNode.inPorts.length > 0) {
                     let idx = tgtNode.flipV ? (tgtNode.inPorts.length - 1 - edgeObj.tgtPortIdx) : edgeObj.tgtPortIdx;
                     endY = (tgtNode.y - tgtNode.height/2) + (idx + 1) * (tgtNode.height / (tgtNode.inPorts.length + 1));
                 }
 
                 const spreadX = (srcNode.isVector || tgtNode.isVector) ? 0 : (edgeObj.srcPortIdx || 0) * 8;
-                const spreadY = (srcNode.isVector || tgtNode.isVector) ? (edgeObj.tgtPortIdx || 0) * 10 : (edgeObj.tgtPortIdx || 0) * 8;
+                const spreadY = (srcNode.isVector || tgtNode.isVector || srcNode.type === 'tb_memory' || tgtNode.type === 'tb_memory') ? (edgeObj.tgtPortIdx || 0) * 10 : (edgeObj.tgtPortIdx || 0) * 8;
 
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
 
-                const srcIsBottom = srcNode.type === 'tb_vector_component' || srcNode.isVector;
-                const tgtIsBottom = tgtNode.type === 'tb_vector_component' || tgtNode.isVector;
+                const srcIsBottom = srcNode.type === 'tb_vector_component' || srcNode.isVector || srcNode.type === 'tb_memory';
+                const tgtIsBottom = tgtNode.type === 'tb_vector_component' || tgtNode.isVector || tgtNode.type === 'tb_memory';
 
                 if (srcIsBottom && tgtIsBottom) {
                     const dropY = Math.max(startY, endY) + 30 + spreadY + edgeObj.customOffset;
@@ -1262,7 +1306,7 @@
                 
                 ctx.stroke();
                 
-                if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
+                if (tgtIsBottom) {
                     drawArrowhead(ctx, endX, endY, -Math.PI/2, 6, ctx.strokeStyle);
                 } else if (tgtNode.type !== 'gate') {
                     drawArrowhead(ctx, endX, endY, tgtFlip ? Math.PI : 0, 6, ctx.strokeStyle);
@@ -1296,6 +1340,72 @@
 
                 if (node.type === 'gate') {
                     drawGate(ctx, -w2, -h2, w, h, node.gateType, colors, node);
+                } else if (node.type === 'tb_memory') {
+                    // Memory Grid Render Logic
+                    const bitW = 20;
+                    const rowH = 26;
+                    const colSpacing = 16;
+                    
+                    let dim1 = node.unpackedDims[0];
+                    let dim2 = node.unpackedDims.length > 1 ? node.unpackedDims[1] : {start: 0, end: 0, size: 1};
+                    
+                    let totalW = dim2.size * (node.numBits * bitW) + (dim2.size - 1) * colSpacing;
+                    let totalH = dim1.size * rowH;
+                    
+                    ctx.fillStyle = colors.ioBg;
+                    ctx.fillRect(-w2, -h2, w, h);
+                    ctx.strokeRect(-w2, -h2, w, h);
+
+                    // 4. Update Text Labels and Memory Rendering
+                    ctx.restore(); // Drop out of flip for text and exact rendering
+                    ctx.save();
+                    ctx.translate(node.x, node.y);
+
+                    // Label string for memories: e.g., "[3:0] mem [1:2] [1:0]"
+                    let dimString = node.unpackedDims.map(d => `[${d.orig1}:${d.orig2}]`).join(' ');
+                    let packedString = node.isVector ? `[${node.msb}:${node.lsb}] ` : '';
+                    let titleStr = `${packedString}${node.label} ${dimString}`;
+
+                    ctx.font = 'bold 14px "JetBrains Mono"';
+                    ctx.fillStyle = colors.text;
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(titleStr, 0, -h2 + 20);
+
+                    // Render Sub-Grids
+                    ctx.lineWidth = 2;
+                    let rIdx = 0;
+                    for (let r = dim1.start; r <= dim1.end; r++) {
+                        let cIdx = 0;
+                        for (let c = dim2.start; c <= dim2.end; c++) {
+                            let cellX = -totalW/2 + cIdx * (node.numBits * bitW + colSpacing);
+                            let cellY = -totalH/2 + rIdx * rowH + 20; // pushed down past title
+                            
+                            // Ask VCD parser for e.g. "mem[r][c]" or "mem[r]"
+                            let vcdName = node.unpackedDims.length > 1 ? `${node.baseName}[${r}][${c}]` : `${node.baseName}[${r}]`;
+                            let simNode = getNodeValueFormatted({ baseName: vcdName, numBits: node.numBits });
+                            let valString = simNode ? simNode.val : "?".repeat(node.numBits);
+                            
+                            ctx.strokeStyle = colors.nodeBorder;
+                            ctx.font = 'bold 16px "Fira Code", monospace';
+                            for(let b = 0; b < node.numBits; b++) {
+                                ctx.strokeRect(cellX + b * bitW, cellY, bitW, rowH);
+                                
+                                let bitChar = valString[b] || '?';
+                                if (bitChar === '?') ctx.fillStyle = colors.text; 
+                                else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
+                                else if (bitChar.toLowerCase() === 'z') ctx.fillStyle = colors.valZ;
+                                else if (bitChar === '1') ctx.fillStyle = colors.val1;
+                                else ctx.fillStyle = colors.val0;
+
+                                ctx.fillText(bitChar, cellX + b * bitW + bitW/2, cellY + rowH/2 + 2);
+                            }
+                            cIdx++;
+                        }
+                        rIdx++;
+                    }
+                    ctx.restore(); // Ensure we don't bleed states
+                    return; // Skip normal rendering
+
                 } else if (node.type === 'tb_vector_component' || node.isVector) {
                     const bitWidth = w / node.numBits;
                     ctx.beginPath(); ctx.rect(-w2, -h2, w, h);
@@ -1345,14 +1455,13 @@
                 const isBoxNode = node.type === 'input' || node.type === 'output' || node.type === 'tb_component' || node.type === 'tb_vector_component';
 
                 if (isBoxNode) {
+                    let labelStr = node.isVector ? `[${node.numBits-1}:0] ${node.label.replace(/^\[.*?\]\s*/, '')}` : node.label;
+                    
                     ctx.font = 'bold 13px "JetBrains Mono"';
                     ctx.fillStyle = colors.text;
-                    ctx.fillText(node.label, node.x, node.y - node.height/2 - 14);
+                    ctx.fillText(labelStr, node.x, node.y - node.height/2 - 14);
 
-                    // Fetch the live simulated value mapped exactly to the time slider
                     const simNode = getNodeValueFormatted(node);
-                    
-                    // Fallback string if mapping fails so user knows it's empty
                     let valString = simNode ? simNode.val : "?".repeat(node.numBits || 1);
                     let targetSize = node.numBits || 1;
                     
@@ -1360,8 +1469,6 @@
                     
                     if (node.isVector || node.type === 'tb_vector_component') {
                         const bitWidth = node.width / targetSize;
-                        
-                        // Iterate to drop exactly one bit in the dead-center of each subdivider box
                         for (let i = 0; i < targetSize; i++) {
                             let bitChar = valString[i] || '?';
                             let bitCenterX = node.x - node.width/2 + (i * bitWidth) + (bitWidth / 2);
@@ -1375,7 +1482,6 @@
                             ctx.fillText(bitChar, bitCenterX, node.y + 1);
                         }
                     } else {
-                        // Scalar (1-bit) drops directly in center
                         let bitChar = valString[0] || '?';
                         if (bitChar === '?') ctx.fillStyle = colors.text; 
                         else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
@@ -1403,7 +1509,6 @@
         // ==========================================
         
         wrapper.addEventListener('dblclick', (e) => {
-            // STOP THE BUBBLING POPUP BUG HERE
             if (e.target.closest('#bottom-time-widget')) return; 
             navigateDown();
         });
@@ -1460,7 +1565,6 @@
         let dragOffsetX = 0, dragOffsetY = 0;
 
         wrapper.addEventListener('mousedown', (e) => { 
-            // PREVENT DRAGGING WHEN CLICKING WIDGET
             if (e.target.closest('#bottom-time-widget')) return;
 
             const rect = canvas.getBoundingClientRect();
