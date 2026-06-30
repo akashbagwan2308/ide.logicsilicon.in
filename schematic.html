@@ -493,19 +493,30 @@
             parsedVCD.maxTime = maxT;
         }
 
-        function getNodeValueFormatted(node) {
+        // Updated function dynamically handles array string suffix resolution
+        function getNodeValueFormatted(node, indexString = "") {
             if (!parsedVCD || !node.baseName) return null;
             
-            // ULTIMATE AGGRESSIVE MATCHING STRATEGY
             let cleanNodeName = node.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
             
             let sig = parsedVCD.signals.find(s => {
-                let vcdNameClean = s.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-                let vcdFullNameClean = s.name.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase(); 
-                
-                return vcdNameClean === cleanNodeName || 
-                       vcdFullNameClean === cleanNodeName || 
-                       vcdFullNameClean.endsWith('.' + cleanNodeName);
+                let vcdNameStripped = s.baseName.replace(/\[\d+:\d+\]/g, ''); 
+                let vcdFullNameStripped = s.name.replace(/\[\d+:\d+\]/g, '');
+
+                if (indexString) {
+                    let target = cleanNodeName + indexString; 
+                    let normalizedVcdName = vcdNameStripped.replace(/\\/g, '').trim(); 
+                    let normalizedVcdFullName = vcdFullNameStripped.replace(/\\/g, '').trim();
+                    
+                    return normalizedVcdName === target || 
+                           normalizedVcdFullName.endsWith('.' + target);
+                } else {
+                    let vcdNameClean = s.baseName.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+                    let vcdFullNameClean = s.name.replace(/\[.*?\]/g, '').replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase(); 
+                    return vcdNameClean === cleanNodeName || 
+                           vcdFullNameClean === cleanNodeName || 
+                           vcdFullNameClean.endsWith('.' + cleanNodeName);
+                }
             });
             
             if (!sig) return null;
@@ -681,17 +692,53 @@
                 const declarations = varMatch[3].split(',');
 
                 declarations.forEach(decl => {
-                    const name = decl.split('=')[0].trim();
-                    if (!name) return;
+                    const namePart = decl.split('=')[0].trim();
+                    if (!namePart) return;
 
-                    if (msb !== null && lsb !== null) {
-                        variables[name] = { isVector: true, msb, lsb, bits: [] };
-                        const step = msb > lsb ? -1 : 1;
-                        for (let i = msb; msb > lsb ? i >= lsb : i <= lsb; i += step) {
-                            variables[name].bits.push(`${name}[${i}]`);
+                    // Match base variable name AND dynamically capture any unpacked dimensions [1:2] [1:0]
+                    const memMatch = namePart.match(/^([a-zA-Z0-9_]+)((?:\s*\[\d+(?::\d+)?\])+)?$/);
+                    
+                    if (memMatch) {
+                        const name = memMatch[1];
+                        const unpackedStr = memMatch[2] ? memMatch[2].trim() : "";
+
+                        let unpackedDims = [];
+                        if (unpackedStr) {
+                            const dimRegex = /\[(\d+)(?::(\d+))?\]/g;
+                            let dMatch;
+                            while ((dMatch = dimRegex.exec(unpackedStr)) !== null) {
+                                const start = parseInt(dMatch[1]);
+                                const end = dMatch[2] ? parseInt(dMatch[2]) : 0;
+                                let size = 0;
+                                if (dMatch[2]) {
+                                    size = Math.abs(start - end) + 1;
+                                } else {
+                                    size = start; 
+                                }
+                                let iterStart = dMatch[2] ? start : 0;
+                                let iterEnd = dMatch[2] ? end : start - 1;
+                                unpackedDims.push({ start: iterStart, end: iterEnd, size });
+                            }
                         }
-                    } else {
-                        variables[name] = { isVector: false, bits: [name] };
+
+                        if (unpackedDims.length > 0) {
+                            variables[name] = {
+                                isMemory: true,
+                                isVector: msb !== null,
+                                msb, lsb,
+                                numBits: msb !== null ? Math.abs(msb - lsb) + 1 : 1,
+                                unpackedDims,
+                                bits: [] 
+                            };
+                        } else if (msb !== null && lsb !== null) {
+                            variables[name] = { isVector: true, msb, lsb, bits: [] };
+                            const step = msb > lsb ? -1 : 1;
+                            for (let i = msb; msb > lsb ? i >= lsb : i <= lsb; i += step) {
+                                variables[name].bits.push(`${name}[${i}]`);
+                            }
+                        } else {
+                            variables[name] = { isVector: false, bits: [name] };
+                        }
                     }
                 });
             }
@@ -812,11 +859,36 @@
                         }
 
                         const tbVarInfo = tbData.variables[connectedVarName];
-                        const numBits = tbVarInfo ? tbVarInfo.bits.length : (portData.bits ? portData.bits.length : 1);
+                        const isMemory = tbVarInfo && tbVarInfo.isMemory;
+                        const numBits = tbVarInfo ? tbVarInfo.numBits : (portData.bits ? portData.bits.length : 1);
 
                         placedTbVars.add(connectedVarName);
 
-                        if (isPortVector && numBits > 1) {
+                        if (isMemory) {
+                            let rows = tbVarInfo.unpackedDims[0].size;
+                            let cols = tbVarInfo.unpackedDims.length > 1 ? tbVarInfo.unpackedDims[1].size : 1;
+                            let bitWidth = 14; let cellW = numBits * bitWidth;
+                            let padX = 12, padY = 28; let spacingX = 8, spacingY = 8, cellH = 22;
+                            let totalW = cols * cellW + (cols - 1) * spacingX + padX * 2;
+                            let totalH = rows * cellH + (rows - 1) * spacingY + padY + 12;
+                            let labelSuffix = tbVarInfo.unpackedDims.map(d => `[${d.start}:${d.end}]`).join('');
+                            const tbNodeName = `tb_${connectedVarName}`;
+
+                            g.setNode(tbNodeName, {
+                                label: connectedVarName + " " + labelSuffix, baseName: connectedVarName,
+                                type: 'tb_memory', numBits: numBits, unpackedDims: tbVarInfo.unpackedDims,
+                                width: Math.max(totalW, (connectedVarName.length + labelSuffix.length) * 8 + 24), height: totalH,
+                                inPorts: isInput ? [] : [tbNodeName],
+                                outPorts: isInput ? [tbNodeName] : [], flipH: false, flipV: false
+                            });
+                            
+                            if (isInput) {
+                                g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
+                            } else {
+                                g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
+                            }
+
+                        } else if (isPortVector && numBits > 1) {
                             const tbNodeName = `tb_${connectedVarName}`;
                             
                             g.setNode(tbNodeName, {
@@ -870,7 +942,22 @@
                         const varInfo = tbData.variables[varName];
                         const tbNodeName = `tb_internal_${varName}`;
                         
-                        if (varInfo.isVector && varInfo.bits.length > 1) {
+                        if (varInfo.isMemory) {
+                            let rows = varInfo.unpackedDims[0].size;
+                            let cols = varInfo.unpackedDims.length > 1 ? varInfo.unpackedDims[1].size : 1;
+                            let bitWidth = 14; let cellW = varInfo.numBits * bitWidth;
+                            let padX = 12, padY = 28; let spacingX = 8, spacingY = 8, cellH = 22;
+                            let totalW = cols * cellW + (cols - 1) * spacingX + padX * 2;
+                            let totalH = rows * cellH + (rows - 1) * spacingY + padY + 12;
+                            let labelSuffix = varInfo.unpackedDims.map(d => `[${d.start}:${d.end}]`).join('');
+
+                            g.setNode(tbNodeName, {
+                                label: varName + " " + labelSuffix, baseName: varName,
+                                type: 'tb_memory', numBits: varInfo.numBits, unpackedDims: varInfo.unpackedDims,
+                                width: Math.max(totalW, (varName.length + labelSuffix.length) * 8 + 24), height: totalH,
+                                inPorts: [], outPorts: [], flipH: false, flipV: false
+                            });
+                        } else if (varInfo.isVector && varInfo.bits.length > 1) {
                             g.setNode(tbNodeName, {
                                 label: varName, 
                                 baseName: varName,
@@ -1338,6 +1425,11 @@
                     ctx.beginPath(); ctx.rect(-w2, -h2, w, h);
                     ctx.shadowColor = colors.shadow; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
                     ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
+                } else if (node.type === 'tb_memory') {
+                    ctx.beginPath(); ctx.roundRect(-w2, -h2, w, h, 6);
+                    ctx.shadowColor = colors.shadow; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+                    ctx.fillStyle = colors.ioBg;
+                    ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
                 } else {
                     ctx.beginPath(); ctx.roundRect(-w2, -h2, w, h, 6);
                     ctx.shadowColor = colors.shadow; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
@@ -1375,10 +1467,7 @@
                     ctx.fillStyle = colors.text;
                     ctx.fillText(node.label, node.x, node.y - node.height/2 - 14);
 
-                    // Fetch the live simulated value mapped exactly to the time slider
                     const simNode = getNodeValueFormatted(node);
-                    
-                    // Fallback string if mapping fails so user knows it's empty
                     let valString = simNode ? simNode.val : "?".repeat(node.numBits || 1);
                     let targetSize = node.numBits || 1;
                     
@@ -1386,8 +1475,6 @@
                     
                     if (node.isVector || node.type === 'tb_vector_component') {
                         const bitWidth = node.width / targetSize;
-                        
-                        // Iterate to drop exactly one bit in the dead-center of each subdivider box
                         for (let i = 0; i < targetSize; i++) {
                             let bitChar = valString[i] || '?';
                             let bitCenterX = node.x - node.width/2 + (i * bitWidth) + (bitWidth / 2);
@@ -1401,7 +1488,6 @@
                             ctx.fillText(bitChar, bitCenterX, node.y + 1);
                         }
                     } else {
-                        // Scalar (1-bit) drops directly in center
                         let bitChar = valString[0] || '?';
                         if (bitChar === '?') ctx.fillStyle = colors.text; 
                         else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
@@ -1412,6 +1498,70 @@
                         ctx.fillText(bitChar, node.x, node.y + 1);
                     }
                     
+                } else if (node.type === 'tb_memory') {
+                    // DYNAMIC MEMORY GRID GENERATION
+                    ctx.font = 'bold 13px "JetBrains Mono"';
+                    ctx.fillStyle = colors.text;
+                    ctx.fillText(node.label, node.x, node.y - node.height/2 + 14);
+
+                    const padX = 12;
+                    const padY = 28;
+                    const cellH = 22;
+                    const bitWidth = 14;
+                    const cellW = node.numBits * bitWidth;
+                    const spacingX = 8;
+                    const spacingY = 8;
+
+                    let d1 = node.unpackedDims[0];
+                    let d2 = node.unpackedDims.length > 1 ? node.unpackedDims[1] : {start:0, end:0, size:1};
+                    let step1 = d1.start > d1.end ? -1 : 1;
+                    let step2 = d2.start > d2.end ? -1 : 1;
+
+                    let r = 0;
+                    for (let i = d1.start; step1 > 0 ? i <= d1.end : i >= d1.end; i += step1) {
+                        let c = 0;
+                        for (let j = d2.start; step2 > 0 ? j <= d2.end : j >= d2.end; j += step2) {
+                            let cellX = node.x - node.width/2 + padX + c * (cellW + spacingX);
+                            let cellY = node.y - node.height/2 + padY + r * (cellH + spacingY);
+
+                            ctx.beginPath(); ctx.rect(cellX, cellY, cellW, cellH);
+                            ctx.fillStyle = colors.gateBg;
+                            ctx.fill();
+                            ctx.strokeStyle = colors.nodeBorder;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            for(let b = 1; b < node.numBits; b++) {
+                                ctx.moveTo(cellX + b * bitWidth, cellY);
+                                ctx.lineTo(cellX + b * bitWidth, cellY + cellH);
+                            }
+                            ctx.strokeStyle = colors.frame;
+                            ctx.stroke();
+
+                            // FETCH THE SPECIFIC MEMORY CELL VALUE FROM VCD
+                            let indexStr = node.unpackedDims.length > 1 ? `[${i}][${j}]` : `[${i}]`;
+                            const simNode = getNodeValueFormatted(node, indexStr);
+                            let valString = simNode ? simNode.val : "?".repeat(node.numBits);
+
+                            ctx.font = 'bold 13px "Fira Code", monospace';
+                            for (let b = 0; b < node.numBits; b++) {
+                                let bitChar = valString[b] || '?';
+                                let bitCenterX = cellX + (b * bitWidth) + (bitWidth / 2);
+
+                                if (bitChar === '?') ctx.fillStyle = colors.text;
+                                else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
+                                else if (bitChar.toLowerCase() === 'z') ctx.fillStyle = colors.valZ;
+                                else if (bitChar === '1') ctx.fillStyle = colors.val1;
+                                else ctx.fillStyle = colors.val0;
+
+                                ctx.fillText(bitChar, bitCenterX, cellY + cellH/2 + 1);
+                            }
+                            c++;
+                        }
+                        r++;
+                    }
+
                 } else if (node.type === 'instance') {
                     ctx.font = 'bold 16px "Inter"'; ctx.fillText(node.label, node.x, node.y - 14);
                     ctx.font = '13px "JetBrains Mono"'; ctx.fillStyle = colors.nodeBorder; ctx.fillText(node.subLabel, node.x, node.y + 16);
@@ -1458,13 +1608,15 @@
         });
 
         window.zoomCanvas = (amt, cx = canvas.width/2, cy = canvas.height/2) => { 
-            const nS = scale * amt; 
-            if (nS >= 0.2 && nS <= 5) { 
-                panX = cx - (cx - panX) * amt; 
-                panY = cy - (cy - panY) * amt; 
-                scale = nS; 
-                renderGraph(); 
-            } 
+            let nS = scale * amt; 
+            // Lowered minimum scale to 0.01 to support massive designs
+            if (nS < 0.01) nS = 0.01; 
+            if (nS > 10) nS = 10; // Increased max zoom just in case
+            
+            panX = cx - (cx - panX) * (nS / scale); 
+            panY = cy - (cy - panY) * (nS / scale); 
+            scale = nS; 
+            renderGraph(); 
         }
 
         window.fitCanvas = () => { 
