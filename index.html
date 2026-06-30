@@ -3,123 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogicSilicon Playground | SystemVerilog Simulator</title>
-    <link rel="icon" type="image/svg+xml" href="favicon1.svg">
+    <title>LogicSilicon | LMS</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        dark: {
-                            bg: '#0f172a',
-                            panel: '#18181b',
-                            editor: '#1e1e1e',
-                            terminal: '#0d0d0d',
-                            border: '#27272a'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-        .view { display: none; flex-direction: row; flex: 1; height: 100%; }
-        .view.active { display: flex; }
-        
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; border: 2px solid #ffffff; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        .dark ::-webkit-scrollbar-thumb { background: #475569; border: 2px solid #1e1e1e;}
-        .dark ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .loader { border: 3px solid transparent; border-top: 3px solid currentColor; border-radius: 50%; width: 18px; height: 18px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Sleek Invisible Resizers */
-        .resizer-h { width: 4px; cursor: col-resize; z-index: 10; background-color: transparent; position: relative;}
-        .resizer-h::after { content: ''; position: absolute; top: 0; bottom: 0; left: 1px; right: 1px; background-color: #e2e8f0; transition: background-color 0.2s ease;}
-        .dark .resizer-h::after { background-color: #334155; }
-        .resizer-h:hover::after, .resizer-h.active::after { background-color: #6366f1; }
-
-        .resizer-v { height: 4px; cursor: row-resize; z-index: 10; background-color: transparent; position: relative;}
-        .resizer-v::after { content: ''; position: absolute; top: 1px; bottom: 1px; left: 0; right: 0; background-color: #e2e8f0; transition: background-color 0.2s ease;}
-        .dark .resizer-v::after { background-color: #334155; }
-        .resizer-v:hover::after, .resizer-v.active::after { background-color: #6366f1; }
-        
-        .monaco-editor .margin { background-color: transparent !important; }
-
-        .fade-transition { transition: opacity 0.5s ease-in-out; }
-        
-        .bg-dot-grid {
-            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-            background-size: 24px 24px;
-        }
-
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; overflow: hidden; }
+        h1, h2, h3, h4, h5, .font-display { font-family: 'Google Sans', sans-serif; }
         .code-font { font-family: 'Fira Code', monospace; }
+        
+        .view { display: none; }
+        .view.active { display: flex; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .btn-primary { background-color: #02569B; color: white; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(2, 86, 155, 0.3); }
+        .btn-primary:hover { background-color: #01437A; box-shadow: 0 6px 20px rgba(2, 86, 155, 0.4); transform: translateY(-1px); }
+        .btn-secondary { background-color: #e3f2fd; color: #02569B; transition: all 0.2s ease; font-weight: 600;}
+        .btn-secondary:hover { background-color: #bbdefb; }
 
-        .pane-maximized { width: 100% !important; display: flex !important; }
-        .pane-hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 
-        /* Toggle Switch Styling */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #6366f1;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #6366f1;
-        }
+        .nav-item { transition: all 0.2s; border-left: 3px solid transparent; }
+        .nav-item:hover { background-color: #f1f5f9; color: #02569B; }
+        .nav-item.active { background-color: #e3f2fd; color: #02569B; border-left-color: #02569B; font-weight: 600; }
+
+        .bg-dot-grid { background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 24px 24px; }
+
+        /* Classic Spinner */
+.classic-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3; /* Light grey */
+    border-top: 5px solid #02569B; /* LogicSilicon Brand Blue */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
     </style>
 </head>
-<body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200">
+<body>
 
-    <!-- 1. LOGIN VIEW (FULLSCREEN HERO WITH FLOATING RIGHT CARD) -->
-    <div id="login-view" class="view active h-full w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
-        
-        <!-- Fullscreen Background Elements -->
+
+<!-- GLOBAL BUFFERING OVERLAY -->
+    <div id="global-buffering" class="hidden fixed inset-0 z-[999] bg-slate-900/80 backdrop-blur-md flex-col items-center justify-center">
+        <div class="classic-spinner mb-6"></div>
+        <h3 class="text-white text-2xl font-extrabold tracking-widest uppercase animate-pulse">Buffering Data</h3>
+        <p class="text-slate-400 text-sm mt-2 font-medium" id="buffering-text">Synchronizing with Database...</p>
+        <!-- NEW TIMER ELEMENT -->
+        <div id="buffering-timer" class="hidden text-sky-400 text-xl font-mono mt-3 font-bold tracking-widest">0.0s</div>
+    </div>
+
+    <div id="login-view" class="view active h-screen w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
         <div class="absolute inset-0 bg-dot-grid"></div>
-        
-        <!-- Glowing Orbs -->
-        <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
-        <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#02569B] rounded-full filter blur-[150px] opacity-40 pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
+        <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-sky-500 rounded-full filter blur-[150px] opacity-20 pointer-events-none"></div>
 
-        <!-- Theme Toggle on Login Page (Frosted Glass) -->
-        <button onclick="toggleTheme()" class="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/5 backdrop-blur-md transition-all shadow-lg z-50" title="Toggle Theme">
-            <svg id="icon-sun-login" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-            <svg id="icon-moon-login" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-        </button>
-
-        <!-- Content Container -->
         <div class="relative z-10 w-full min-h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row items-center justify-center lg:justify-between px-6 lg:px-12 py-10 lg:py-6">
             
-            <!-- LEFT SIDE: Dynamic Minimalist Hero -->
             <div class="hidden lg:flex flex-col justify-center w-1/2 pr-10 pointer-events-none">
                 <div class="flex items-center gap-3 text-white mb-10 lg:mb-12">
-                    <div class="w-10 h-10 bg-indigo-500 text-white rounded-[10px] flex items-center justify-center font-bold text-lg shadow-lg">LS</div>
-                    <span class="font-semibold text-2xl tracking-tight">LogicSilicon | IDE</span>
+                    <div class="w-10 h-10 bg-[#02569B] text-white rounded-[10px] flex items-center justify-center font-bold text-lg shadow-lg">LS</div>
+                    <span class="font-display font-semibold text-2xl tracking-tight">LogicSilicon | LMS</span>
                 </div>
                 
-                <h1 id="hero-title" class="text-4xl xl:text-[46px] font-semibold text-white leading-[1.15] mb-3 tracking-tight fade-transition">
-                    Enterprise-Grade<br/>SystemVerilog Simulation.
+                <h1 id="hero-title" class="text-4xl xl:text-[46px] font-display font-bold text-white leading-[1.15] mb-3 tracking-tight transition-opacity duration-500">
+                    Centralized Learning<br/>Management System.
                 </h1>
-                <p id="hero-desc" class="text-slate-400 text-lg font-normal max-w-md leading-relaxed fade-transition">
-                    A professional, zero-setup verification environment built for hardware engineers and academic institutions.
+                <p id="hero-desc" class="text-slate-400 text-lg font-normal max-w-md leading-relaxed transition-opacity duration-500">
+                    A unified platform for tracking assignments, video lectures, and student progress with zero friction.
                 </p>
 
-                <!-- Sleek Editor Mockup -->
-                <div class="w-full max-w-[480px] mt-8 fade-transition">
+                <!-- Sleek Dashboard Mockup -->
+                <div class="w-full max-w-[480px] mt-8">
                     <div class="rounded-xl overflow-hidden bg-[#1e1e1e] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
                         <div class="bg-[#252526] px-4 py-3 flex items-center gap-4 border-b border-white/5">
                             <div class="flex gap-2">
@@ -127,68 +92,67 @@
                                 <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
                                 <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
                             </div>
-                            <span id="hero-filename" class="text-[#858585] text-xs code-font">design.sv</span>
+                            <span id="hero-filename" class="text-[#858585] text-xs code-font transition-opacity duration-500">dashboard_metrics.json</span>
                         </div>
-                        <div id="hero-code" class="p-5 code-font text-[13px] leading-[1.6] text-[#d4d4d4] overflow-hidden h-[210px]">
-                            <span style="color:#569cd6">module</span> top_module(<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> clk,<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> reset,<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] count<br/>
-                            );<br/><br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6a9955">// IEEE 1800-2012 Engine Active</span><br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_ff</span> @(<span style="color:#569cd6">posedge</span> clk) <span style="color:#569cd6">begin</span><br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">if</span> (reset) count &lt;= <span style="color:#b5cea8">0</span>;<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">else</span> count &lt;= count + <span style="color:#b5cea8">1</span>;<br/>
-                            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/>
-                            <span style="color:#569cd6">endmodule</span>
+                        <div id="hero-code" class="p-5 code-font text-[13px] leading-[1.6] text-[#d4d4d4] overflow-hidden h-[210px] transition-opacity duration-500">
+                            <span style="color:#569cd6">const</span> studentMetrics = {<br/>
+                            &nbsp;&nbsp;<span style="color:#9cdcfe">pendingAssignments</span>: <span style="color:#b5cea8">3</span>,<br/>
+                            &nbsp;&nbsp;<span style="color:#9cdcfe">completedTests</span>: <span style="color:#b5cea8">12</span>,<br/>
+                            &nbsp;&nbsp;<span style="color:#9cdcfe">averageScore</span>: <span style="color:#ce9178">"88.5%"</span>,<br/>
+                            &nbsp;&nbsp;<span style="color:#9cdcfe">latestLecture</span>: <span style="color:#ce9178">"UVM Sequences"</span><br/>
+                            };<br/><br/>
+                            <span style="color:#6a9955">// Syncing with portal...</span><br/>
+                            <span style="color:#4ec9b0">System</span>.log(<span style="color:#ce9178">"All modules up to date."</span>);
                         </div>
                     </div>
                 </div>
-
                 <div class="mt-8 flex items-center justify-between max-w-[480px]">
-                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Secure Cloud Infrastructure</div>
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Secure Infrastructure</div>
                     <div class="flex gap-2">
-                        <div id="dot-0" class="w-6 h-1 rounded-full bg-indigo-500 transition-all duration-500"></div>
+                        <div id="dot-0" class="w-6 h-1 rounded-full bg-[#02569B] transition-all duration-500"></div>
                         <div id="dot-1" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
                         <div id="dot-2" class="w-2 h-1 rounded-full bg-slate-700 transition-all duration-500"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT SIDE: Floating Login Card -->
             <div class="w-full lg:w-[460px] flex items-center justify-center z-20">
-                <div class="bg-white dark:bg-slate-800 p-8 sm:p-10 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] w-full flex flex-col transition-colors">
+                <div class="bg-white p-8 sm:p-10 rounded-[2rem] border border-slate-100 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] w-full flex flex-col transition-colors">
                     
-                    <!-- Mobile Logo -->
                     <div class="lg:hidden flex justify-center items-center gap-3 mb-8">
-                        <div class="w-12 h-12 bg-indigo-500 text-white rounded-[14px] flex items-center justify-center font-black text-2xl shadow-lg">LS</div>
-                        <span class="font-extrabold text-3xl tracking-tight text-slate-900 dark:text-white">LogicSilicon</span>
+                        <div class="w-12 h-12 bg-[#02569B] text-white rounded-[14px] flex items-center justify-center font-black text-2xl shadow-lg">LS</div>
+                        <span class="font-display font-extrabold text-3xl tracking-tight text-slate-900">LogicSilicon</span>
                     </div>
 
-                    <h2 class="text-[28px] font-extrabold text-slate-900 dark:text-white mb-1 transition-colors tracking-tight">Welcome Back</h2>
-                    <p class="text-slate-500 dark:text-slate-400 text-[15px] mb-6 font-medium transition-colors">Sign in to securely access your simulation workspace.</p>
+                    <h2 class="text-[28px] font-display font-extrabold text-slate-900 mb-1 tracking-tight">Welcome Back</h2>
+                    <p class="text-slate-500 text-[15px] mb-6 font-medium">Sign in to access your learning portal.</p>
 
-                    <div id="login-error" class="hidden bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/50 text-red-600 dark:text-red-400 p-3.5 rounded-xl mb-4 text-sm font-medium transition-colors flex items-start gap-3">
+                    <div class="flex bg-slate-100/80 p-1.5 rounded-xl mb-6 border border-slate-200">
+                        <button id="auth-tab-student" onclick="setAuthRole('student')" class="flex-1 py-3 text-[13px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all">Student</button>
+                        <button id="auth-tab-instructor" onclick="setAuthRole('admin')" class="flex-1 py-3 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">Instructor</button>
+                    </div>
+
+                    <div id="login-error" class="hidden bg-red-50 border border-red-100 text-red-600 p-3.5 rounded-xl mb-4 text-sm font-medium flex items-start gap-3">
                         <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span id="login-error-text"></span>
                     </div>
 
                     <form onsubmit="handleLogin(event)">
                         <div class="mb-4">
-                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider transition-colors">Email Address</label>
-                            <input type="email" id="user-email" class="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="name@domain.com" required>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Email Address</label>
+                            <input type="email" id="auth-email" required class="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#02569B] focus:ring-2 focus:ring-[#02569B]/20 transition-all placeholder:text-slate-400" placeholder="name@domain.com">
                         </div>
                         <div class="mb-6">
-                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider transition-colors">Access Token / Password</label>
-                            <input type="password" id="user-auth" class="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="••••••••" required>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider">Password / Enrollment ID</label>
+                            <input type="password" id="auth-password" required class="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#02569B] focus:ring-2 focus:ring-[#02569B]/20 transition-all placeholder:text-slate-400" placeholder="••••••••">
                         </div>
-                        <button type="submit" id="btn-login" class="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/30 flex justify-center items-center gap-2">
-                            Secure Login
+                        <button type="submit" class="w-full py-3.5 rounded-xl font-bold text-white bg-[#02569B] hover:bg-[#01437A] transition-all shadow-lg shadow-[#02569B]/30 flex justify-center items-center gap-2">
+                            Sign In &rarr;
                         </button>
                     </form>
 
-                    <p class="mt-6 text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic uppercase tracking-widest text-center transition-colors">
-                        JWT Secure Connect Active
+                    <p class="mt-6 text-[10px] text-slate-400 font-semibold italic uppercase tracking-widest text-center">
+                        Access Restricted to Enrolled Users
                     </p>
                 </div>
             </div>
@@ -196,249 +160,414 @@
         </div>
     </div>
 
-    <!-- 2. SIMULATOR VIEW (IDE) -->
-    <div id="simulator-view" class="view flex-col bg-white dark:bg-dark-bg transition-colors h-screen w-full">
+    <div id="dashboard-view" class="view h-screen w-full flex-col bg-slate-50">
         
-        <nav class="h-14 bg-white dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-center justify-between px-4 shrink-0 z-20 transition-colors">
-            <div class="flex items-center gap-5">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg flex items-center justify-center font-bold text-[13px] shadow-sm">LS</div>
-                    <span class="font-bold text-sm text-slate-800 dark:text-slate-200 transition-colors hidden sm:block">Playground</span>
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-[#02569B] text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-md">LS</div>
+                <span class="font-display font-bold text-[20px] text-slate-800 tracking-tight">LogicSilicon <span class="font-normal text-slate-400">| LMS</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-[10px] font-bold text-[#02569B] uppercase tracking-wider" id="user-role-display">Role</p>
+                    <p class="text-sm font-medium text-slate-700" id="user-email-display">user@domain.com</p>
                 </div>
-                
-                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-                
-                <div class="flex items-center gap-2 relative">
-                    <button onclick="triggerUpload()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Upload Code">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        <span class="hidden sm:inline">Upload</span>
+                <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
+                <button onclick="logout()" class="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1">
+                    Log out
+                </button>
+            </div>
+        </header>
+
+        <div class="flex-1 flex overflow-hidden">
+            
+            <aside class="w-64 bg-white border-r border-slate-200 flex flex-col py-6 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
+                <nav class="flex-1 space-y-1 px-3">
+                    <button onclick="switchTab('overview')" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg> Overview
                     </button>
-                    <input type="file" id="file-upload" accept=".v,.sv,.txt" class="hidden" onchange="handleFileUpload(event)">
-
-	    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Download Code">
-    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-    <span class="hidden sm:inline">Save</span>
-</button>
-
-<button id="btn-save-git" onclick="saveToGitHub()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-[13px] font-medium transition-colors border border-slate-700" title="Push to GitHub">
-    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.376.202 2.394.1 2.646.64.699 1.026 1.591 1.026 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"></path></svg>
-    <span class="hidden sm:inline">Push to Git</span>
-</button>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-4 sm:gap-5">
-                <div class="hidden md:flex items-center gap-2 bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full transition-colors">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-                    <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium transition-colors tracking-wide" id="nav-user-email">user@domain.com</span>
-                </div>
-
-                <!-- Theme Toggle -->
-                <button onclick="toggleTheme()" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Theme">
-                    <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                </button>
-
-                <!-- Settings Dropdown -->
-                <div class="relative">
-                    <button onclick="toggleSettings(event)" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center" title="Editor Settings">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <button onclick="switchTab('courses')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> Video Lectures
                     </button>
-                    <!-- Settings Menu -->
-                    <div id="settings-menu" class="hidden absolute right-0 top-full mt-3 w-56 bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-4" onclick="event.stopPropagation()">
-                        <h3 class="font-bold text-[11px] text-slate-500 uppercase tracking-widest mb-4">Editor Settings</h3>
-                        
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Word Wrap</span>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" id="setting-wrap" onchange="updateEditorSettings()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out z-10" />
-                                <label for="setting-wrap" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer transition-colors duration-300 ease-in-out"></label>
-                            </div>
-                        </div>
-                        
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Show Minimap</span>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" id="setting-minimap" onchange="updateEditorSettings()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out z-10" />
-                                <label for="setting-minimap" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 dark:bg-slate-600 cursor-pointer transition-colors duration-300 ease-in-out"></label>
-                            </div>
-                        </div>
+                    <button onclick="switchTab('assignments')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg> Assignments
+                    </button>
+                    <button onclick="switchTab('tests')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Tests
+                    </button>
+                    <button onclick="switchTab('certificates')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> Certificates
+                    </button>
+                    <button onclick="switchTab('profile')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 font-medium text-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> My Profile
+                    </button>
+                </nav>
+            </aside>
 
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Font Size</span>
-                            <input type="number" id="setting-fontsize" value="14" min="10" max="24" onchange="updateEditorSettings()" class="w-16 bg-slate-100 dark:bg-slate-800 rounded-md p-1.5 text-sm font-bold text-center border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500">
-                        </div>
-			<div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">GitHub Sync</span>
-    <button onclick="connectGitHub()" id="btn-connect-git" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-bold transition-colors">
-        Connect Repo
-    </button>
-</div>
-                    </div>
-                </div>
-
-                <!-- RTL Viewer Button -->
-                <button onclick="openRTLViewer()" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]">
-                    👁️ RTL Schematic (Beta)
-                </button>
+            <main class="flex-1 overflow-y-auto p-8 relative">
                 
-                <!-- Run and Stop Buttons -->
-                <button onclick="runSimulation()" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]">
-                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
-                    Run Code
-                </button>
-                
-                <button onclick="stopSimulation()" id="btn-stop" class="hidden items-center gap-2 px-5 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(239,68,68,0.3)] transition-all transform hover:-translate-y-[1px]">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    Stop
-                </button>
-
-                <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-
-                <button onclick="logout()" class="text-[13px] text-slate-500 hover:text-red-500 dark:hover:text-red-400 font-semibold transition-colors">Exit</button>
-            </div>
-        </nav>
-
-        <div class="flex-1 flex flex-col overflow-hidden min-h-0" onclick="closeSettingsMenu()">
-            <!-- TOP SECTION: Editors Side-by-Side -->
-            <div id="top-section" class="flex-1 flex flex-row min-h-0 bg-white dark:bg-dark-editor transition-colors relative">
-                
-                <!-- DESIGN PANE -->
-                <div id="design-pane" class="flex flex-col h-full min-w-0" style="width: 50%;">
-                    <div class="h-10 bg-[#f1f5f9] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-end justify-between px-2 shrink-0 transition-colors pt-2">
-                        <!-- Design Tabs Container -->
-                        <div class="flex items-end gap-1 flex-1 overflow-x-auto hide-scroll pr-2" id="design-tabs">
-                            <!-- Tabs injected via JS -->
-                        </div>
-                        <div class="flex items-center gap-2 mb-1.5 px-2">
-                            <button onclick="addFile('design')" class="text-slate-400 hover:text-indigo-500 transition-colors" title="New File">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            </button>
-                            <button onclick="toggleMaximize('design')" class="text-slate-400 hover:text-indigo-500 transition-colors ml-1" title="Maximize/Restore">
-                                <svg id="max-icon-design" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zm6 10h2v6h-6v-2h4v-4zM4 14h2v4h4v2H4v-6z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="monaco-design" class="flex-1 w-full min-h-0"></div>
-                </div>
-
-                <div id="h-resizer" class="resizer-h bg-slate-100 dark:bg-[#18181b] transition-colors border-x border-slate-200 dark:border-transparent"></div>
-
-                <!-- TESTBENCH PANE -->
-                <div id="tb-pane" class="flex-1 flex flex-col h-full min-w-0">
-                    <div class="h-10 bg-[#f1f5f9] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-end justify-between px-2 shrink-0 transition-colors pt-2">
-                        <!-- TB Tabs Container -->
-                        <div class="flex items-end gap-1 flex-1 overflow-x-auto hide-scroll pr-2" id="tb-tabs">
-                            <!-- Tabs injected via JS -->
-                        </div>
-                        <div class="flex items-center gap-2 mb-1.5 px-2">
-                            <button onclick="addFile('tb')" class="text-slate-400 hover:text-emerald-500 transition-colors" title="New File">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                            </button>
-                            <button onclick="toggleMaximize('tb')" class="text-slate-400 hover:text-emerald-500 transition-colors ml-1" title="Maximize/Restore">
-                                <svg id="max-icon-tb" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zm6 10h2v6h-6v-2h4v-4zM4 14h2v4h4v2H4v-6z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="monaco-tb" class="flex-1 w-full min-h-0"></div>
-                </div>
-            </div>
-
-            <div id="v-resizer" class="resizer-v bg-slate-100 dark:bg-[#18181b] transition-colors border-y border-slate-200 dark:border-transparent"></div>
-
-            <!-- BOTTOM SECTION: Terminal -->
-            <div id="terminal-section" class="h-[35%] flex flex-col min-h-0 bg-white dark:bg-dark-terminal transition-colors">
-                
-                <div class="h-10 bg-[#f8fafc] dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-center px-4 justify-between shrink-0 transition-colors">
-                    <div class="flex items-center gap-4">
-                        <span class="font-semibold text-[11px] text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            Terminal Output
-                        </span>
-                        <div class="hidden sm:block h-3 w-px bg-slate-300 dark:bg-slate-700"></div>
-                        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-500 font-mono">
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> System Idle
-                        </span>
+                <!-- TAB: OVERVIEW (REDESIGNED) -->
+                <div id="tab-overview" class="tab-content active space-y-8 max-w-6xl mx-auto">
+                    <div>
+                        <h2 class="text-3xl font-display font-bold text-slate-800 tracking-tight">Welcome back, <span id="overview-user-name">User</span>! 👋</h2>
+                        <p class="text-slate-500 mt-1">Here is what's happening with your VLSI training today.</p>
                     </div>
                     
-                    <div class="flex items-center gap-2">
-                        <!-- View Waveform Button -->
-                        <button id="btn-waveform" onclick="openWaveformViewer()" class="hidden flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors uppercase tracking-widest bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1 rounded border border-indigo-200 dark:border-indigo-500/20">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h4l3-9 5 18 3-9h4"></path></svg>
-                            Waveform (.VCD)
-                        </button>
-                        
-                        <button onclick="clearTerminal()" class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest bg-slate-200/50 dark:bg-slate-800 px-3 py-1 rounded">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            Clear
-                        </button>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-8">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <!-- Gradient Card -->
+                                <div class="relative overflow-hidden bg-gradient-to-br from-[#02569B] to-sky-700 p-6 rounded-3xl shadow-[0_10px_30px_-10px_rgba(2,86,155,0.5)] text-white flex flex-col justify-between transition-transform hover:-translate-y-1">
+                                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
+                                    <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-sky-300 opacity-20 rounded-full blur-xl"></div>
+                                    <div class="relative z-10 flex justify-between items-start mb-6">
+                                        <div>
+                                            <span class="text-[11px] font-bold text-sky-200 uppercase tracking-wider block mb-1">Pending Tasks</span>
+                                            <span class="text-5xl font-black tracking-tight" id="overview-pending-count">0</span>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        </div>
+                                    </div>
+                                    <div class="relative z-10">
+                                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span> <span id="overview-pending-text">Requires your action</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Clean White Card -->
+                                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between transition-transform hover:-translate-y-1 hover:shadow-md">
+                                    <div class="flex justify-between items-start mb-6">
+                                        <div>
+                                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Course Materials</span>
+                                            <span class="text-5xl font-black text-slate-800 tracking-tight" id="overview-lecture-count">0</span>
+                                        </div>
+                                        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 cursor-pointer" onclick="switchTab('courses')">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg> Accessible resources
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Tasks -->
+                            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
+                                    <h3 class="font-bold text-slate-800">Upcoming Tasks</h3>
+                                    <button onclick="switchTab('assignments')" class="text-xs font-bold text-[#02569B] hover:underline">View All</button>
+                                </div>
+                                <div class="divide-y divide-slate-100" id="overview-upcoming-tasks">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column Calendar -->
+                        <div class="lg:col-span-1">
+                            <div id="calendar-container" class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm sticky top-8">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="flex-1 p-5 overflow-y-auto code-font text-[13.5px] leading-relaxed whitespace-pre-wrap text-slate-800 dark:text-slate-300 transition-colors selection:bg-indigo-200 dark:selection:bg-indigo-900" id="terminal-output">
-<span class="text-slate-500 dark:text-slate-500">Welcome to LogicSilicon Playground.
-SystemVerilog (IEEE 1800-2012) Engine ready.
-Write your design and testbench, then click 'Run Code'.</span>
-                </div>
-            </div>
 
+                <!-- TAB: COURSES / LECTURES -->
+                <div id="tab-courses" class="tab-content space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-2">
+                        <div>
+                            <h2 class="text-3xl font-display font-bold text-slate-800 tracking-tight">Video Lectures & Materials</h2>
+                            <p class="text-slate-500 text-sm font-medium mt-1">Navigate lectures at your own pace. Materials can be accessed securely below.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <select id="lec-cat-filter" onchange="filterLectures(this.value)" class="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-[#02569B] shadow-sm cursor-pointer hover:border-slate-300 transition-colors">
+                                <option value="All">All Categories</option>
+                                <option value="Digital">Digital Electronics</option>
+                                <option value="Verilog">Verilog</option>
+                                <option value="SV">SystemVerilog</option>
+                                <option value="UVM">UVM</option>
+                            </select>
+                            <button id="btn-add-lecture" onclick="toggleModal('lecture-modal')" class="hidden btn-primary px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm">
+                                + Add Material
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="lecture-workspace" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB: ASSIGNMENTS -->
+                <div id="tab-assignments" class="tab-content space-y-6">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-3xl font-display font-bold text-slate-800 tracking-tight">Assignments</h2>
+                            <p class="text-slate-500 mt-1">Download tasks, submit solutions (1 attempt allowed), and view grades.</p>
+                        </div>
+                        <button id="btn-add-assignment" onclick="toggleModal('assignment-modal')" class="hidden btn-primary px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm">
+                            + New Assignment
+                        </button>
+                    </div>
+
+                    <div class="flex bg-slate-100/80 p-1.5 rounded-xl w-fit mb-6 border border-slate-200 shadow-sm">
+                        <button onclick="filterAssignments('All')" class="ass-filter-btn active flex-1 px-5 py-2 text-[13px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all" data-filter="All">All</button>
+                        <button onclick="filterAssignments('Digital')" class="ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all" data-filter="Digital">Digital</button>
+                        <button onclick="filterAssignments('Verilog')" class="ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all" data-filter="Verilog">Verilog</button>
+                        <button onclick="filterAssignments('SV')" class="ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all" data-filter="SV">SV</button>
+                        <button onclick="filterAssignments('UVM')" class="ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all" data-filter="UVM">UVM</button>
+                    </div>
+
+                    <div id="assignment-list" class="space-y-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB: CERTIFICATES -->
+                <div id="tab-certificates" class="tab-content space-y-6">
+                    <div class="flex justify-between items-end mb-6 border-b border-slate-200 pb-4">
+                        <div>
+                            <h2 class="text-3xl font-display font-bold text-slate-800 tracking-tight">Certificates</h2>
+                            <p class="text-slate-500 mt-1">Official VLSI completion certificates and acknowledgments.</p>
+                        </div>
+                    </div>
+
+                    <div id="instructor-cert-area" class="hidden mb-8">
+                        <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                            <h3 class="font-bold text-[#02569B] mb-4 text-lg">Issue New Certificate</h3>
+                            <form onsubmit="handleIssueCertificate(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-1.5">Student Email</label>
+                                    <input type="email" id="cert-email" required class="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none text-sm shadow-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-1.5">Certificate Title</label>
+                                    <input type="text" id="cert-title" required class="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none text-sm shadow-sm" placeholder="e.g. Master of UVM">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-1.5">Upload PDF</label>
+                                    <input type="file" id="cert-file" accept=".pdf" required class="w-full px-4 py-2 bg-white border border-blue-200 rounded-xl text-xs cursor-pointer file:rounded file:border-0 file:bg-blue-100 file:text-[#02569B]">
+                                </div>
+                                <div>
+                                    <button type="submit" id="btn-submit-cert" class="w-full btn-primary py-2.5 rounded-xl font-bold text-[14px]">Issue Certificate</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="certificates-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    </div>
+                </div>
+
+                <!-- TAB: TESTS -->
+                <div id="tab-tests" class="tab-content">
+                    <h2 class="text-3xl font-display font-bold text-slate-800 mb-4 tracking-tight">Tests</h2>
+                    <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center shadow-sm">
+                        <p class="text-slate-500 text-lg mb-6">All formal tests are conducted via the isolated Assessment Engine.</p>
+                        <button onclick="goToAssessment()" class="btn-secondary px-8 py-3 rounded-full inline-block">Go to Assessment Portal</button>
+                    </div>
+                </div>
+
+                <!-- TAB: PROFILE -->
+                <div id="tab-profile" class="tab-content">
+                    <h2 class="text-3xl font-display font-bold text-slate-800 mb-6 tracking-tight">My Profile</h2>
+                    <div class="bg-white rounded-[24px] border border-slate-200 shadow-sm overflow-hidden mb-6 relative">
+                        <div class="h-28 bg-gradient-to-r from-[#02569B] to-[#38bdf8]"></div>
+                        <div class="px-10 pb-10 relative">
+                            <div class="absolute -top-14 left-10">
+                                <div class="w-28 h-28 rounded-full bg-gradient-to-br from-[#02569B] to-[#38bdf8] border-4 border-white shadow-lg flex items-center justify-center text-white text-4xl font-bold" id="profile-avatar">A</div>
+                            </div>
+                            <div class="flex justify-between items-start pt-20 mb-10">
+                                <div>
+                                    <h3 class="text-[28px] font-bold text-slate-900 leading-tight" id="profile-name">User</h3>
+                                    <p class="text-[15px] text-slate-500 font-medium mt-1" id="profile-batch-sub">Loading...</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-16 pt-8 border-t border-slate-100">
+                                <div>
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Full Name</span>
+                                    <span class="text-[15px] font-semibold text-slate-800" id="profile-detail-name">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Enrollment ID</span>
+                                    <span class="text-[15px] font-semibold text-slate-800" id="profile-detail-id">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Email Address</span>
+                                    <span class="text-[15px] font-semibold text-slate-800" id="profile-email">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Current Batch</span>
+                                    <span class="text-[15px] font-semibold text-slate-800" id="profile-batch">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
 
+    <!-- MODALS -->
+
+    <div id="lecture-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 text-lg">Add Course Material</h3>
+                <button onclick="toggleModal('lecture-modal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="handleAddLecture(event)" class="p-6 space-y-5">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Type</label>
+                    <select id="lec-type" onchange="toggleLecInput(this.value)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none cursor-pointer text-sm">
+                        <option value="Video">Video Lecture</option>
+                        <option value="Document">Learning Material (PDF/PPT/DOC)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Title</label>
+                    <input type="text" id="lec-title" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Category</label>
+                        <select id="lec-cat" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none cursor-pointer text-sm font-medium">
+                            <option value="Digital">Digital</option>
+                            <option value="Verilog">Verilog</option>
+                            <option value="SV">SV</option>
+                            <option value="UVM">UVM</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Duration/Subtext</label>
+                        <input type="text" id="lec-dur" required placeholder="e.g. 45:20 or '10 Pages'" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Material Source</label>
+                    <div class="flex bg-slate-100/80 p-1.5 rounded-xl border border-slate-200">
+                        <button type="button" id="src-btn-link" onclick="toggleSource('link')" class="flex-1 py-2 text-[12px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all">Paste Link</button>
+                        <button type="button" id="src-btn-upload" onclick="toggleSource('upload')" class="flex-1 py-2 text-[12px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">Upload File</button>
+                    </div>
+                </div>
+
+                <div id="lec-link-container">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">External Link (Drive / YouTube)</label>
+                    <input type="url" id="lec-link" placeholder="https://..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                </div>
+                <div id="lec-file-container" class="hidden">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Upload File (Max 10MB)</label>
+                    <input type="file" id="lec-file" accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm cursor-pointer file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#02569B]">
+                </div>
+
+                <button type="submit" id="btn-submit-lec" class="w-full btn-primary py-3.5 rounded-xl font-bold mt-4 text-[15px]">Publish Material</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="assignment-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 text-lg">Create Assignment</h3>
+                <button onclick="toggleModal('assignment-modal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="handleAddAssignment(event)" class="p-6 space-y-5">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Title</label>
+                    <input type="text" id="ass-title" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Category</label>
+                        <select id="ass-cat" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none cursor-pointer text-sm font-medium">
+                            <option value="Digital">Digital</option>
+                            <option value="Verilog">Verilog</option>
+                            <option value="SV">SV</option>
+                            <option value="UVM">UVM</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Max Marks</label>
+                        <input type="number" id="ass-marks" required value="10" min="1" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Upload Question File (Max 10MB)</label>
+                    <input type="file" id="ass-file" accept=".pdf" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-[#02569B] hover:file:bg-blue-100 cursor-pointer transition-colors">
+                </div>
+                <button type="submit" id="btn-submit-ass" class="w-full btn-primary py-3.5 rounded-xl font-bold mt-4 text-[15px]">Publish Assignment</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="grade-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 text-lg">Grade Submission</h3>
+                <button onclick="toggleModal('grade-modal')" class="text-slate-400 hover:text-slate-700 font-bold text-2xl leading-none">&times;</button>
+            </div>
+            <form onsubmit="handleGradeSubmit(event)" class="p-6 space-y-5">
+                <input type="hidden" id="grade-ass-id">
+                <input type="hidden" id="grade-student-email">
+                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <span class="text-sm font-bold text-slate-700" id="grade-student-display">Student</span>
+                    <a id="grade-download-link" href="#" class="text-[11px] uppercase tracking-wider font-bold text-[#02569B] hover:underline flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> PDF
+                    </a>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Marks Alloted (out of <span id="grade-max" class="text-slate-800"></span>)</label>
+                    <input type="number" id="grade-marks" required min="0" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1.5">Remarks</label>
+                    <textarea id="grade-remarks" rows="3" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#02569B] focus:outline-none transition-shadow text-sm resize-none"></textarea>
+                </div>
+                <button type="submit" id="btn-save-grade" class="w-full btn-primary py-3.5 rounded-xl font-bold mt-4 text-[15px]">Save Grade</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+
     <script>
-        // =========================================================
-        // CONFIGURATION & STATE
-        // =========================================================
-        
-// 🔴 SECURE ROUTES:
-const AUTH_API_URL = "https://ide-backend-i1s5.onrender.com/login"; 
-const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; 
-const GIT_API_URL = "https://ide-backend-i1s5.onrender.com/save-github"; // Updated Route
+          
+        // CHANGE THIS TO YOUR RENDER DEPLOYMENT URL IN PRODUCTION
+        // Example: const NODE_BACKEND_URL = "https://logicsilicon-unified-api.onrender.com";
+        const NODE_BACKEND_URL = "https://lms-backend-39z6.onrender.com"; 
 
-let currentGitOwner = sessionStorage.getItem('ls_gh_owner') || null;
-let currentGitRepo = sessionStorage.getItem('ls_gh_repo') || null;
-let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
-
-
-        let currentUser = null;
-        let editorDesign = null;
-        let editorTb = null;
-        let isDarkMode = false;
-        let abortController = null; 
-        
-        // --- Multi-File State ---
-        let designFiles = [{ name: "design.sv", content: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule" }];
-        let tbFiles = [{ name: "testbench.sv", content: "`timescale 1ns/1ns \n  module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
-        
-        let activeDesignIdx = 0;
-        let activeTbIdx = 0;
-        let maximizedPane = null; // 'design', 'tb', or null
-
-        // --- Editor Settings State ---
-        let editorSettings = {
-            wrap: false,
-            minimap: false,
-            fontSize: 14
+        // --- STATE ---
+        let state = {
+            role: 'student', 
+            user: null, 
+            assFilter: 'All', lecFilter: 'All', activeLectureId: null, 
+            assignments: [], lectures: [], materials: [], certificates: []
         };
 
         const heroSlides = [
             {
-                title: "Enterprise-Grade<br/>SystemVerilog Simulation.",
-                desc: "A professional, zero-setup verification environment built for hardware engineers and academic institutions.",
-                filename: "design.sv",
-                code: `<span style="color:#569cd6">module</span> top_module(<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> clk,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> reset,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] count<br/>);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#6a9955">// IEEE 1800-2012 Engine Active</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_ff</span> @(<span style="color:#569cd6">posedge</span> clk) <span style="color:#569cd6">begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">if</span> (reset) count &lt;= <span style="color:#b5cea8">0</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">else</span> count &lt;= count + <span style="color:#b5cea8">1</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+                title: "Centralized Learning<br/>Management System.",
+                desc: "A unified platform for tracking assignments, video lectures, and student progress with zero friction.",
+                filename: "dashboard_metrics.json",
+                code: `<span style="color:#569cd6">const</span> studentMetrics = {<br/>&nbsp;&nbsp;<span style="color:#9cdcfe">pendingAssignments</span>: <span style="color:#b5cea8">3</span>,<br/>&nbsp;&nbsp;<span style="color:#9cdcfe">completedTests</span>: <span style="color:#b5cea8">12</span>,<br/>&nbsp;&nbsp;<span style="color:#9cdcfe">averageScore</span>: <span style="color:#ce9178">"88.5%"</span>,<br/>&nbsp;&nbsp;<span style="color:#9cdcfe">latestLecture</span>: <span style="color:#ce9178">"UVM Sequences"</span><br/>};<br/><br/><span style="color:#6a9955">// Syncing with portal...</span><br/><span style="color:#4ec9b0">System</span>.log(<span style="color:#ce9178">"All modules up to date."</span>);`
             },
             {
-                title: "Compile & Simulate<br/>with Zero Overhead.",
-                desc: "Write complex combinational logic and run testbenches instantly without local software installations.",
-                filename: "alu.sv",
-                code: `<span style="color:#569cd6">module</span> alu_32bit(<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> [<span style="color:#b5cea8">31</span>:<span style="color:#b5cea8">0</span>] a, b,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> [<span style="color:#b5cea8">1</span>:<span style="color:#b5cea8">0</span>] op,<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">output logic</span> [<span style="color:#b5cea8">31</span>:<span style="color:#b5cea8">0</span>] result<br/>);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">always_comb begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">case</span>(op)<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b00</span>: result = a + b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b01</span>: result = a - b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b10</span>: result = a & b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">2'b11</span>: result = a | b;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">endcase</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+                title: "Secure & Proctored<br/>Assessment Engine.",
+                desc: "Evaluate true hardware engineering competency with strict environment lockdown and isolated simulation.",
+                filename: "proctor_config.yml",
+                code: `<span style="color:#569cd6">security_profile</span>: strict<br/><span style="color:#569cd6">allow_tab_switch</span>: false<br/><span style="color:#569cd6">require_fullscreen</span>: true<br/><span style="color:#569cd6">telemetry_interval</span>: 30s<br/><br/><span style="color:#6a9955"># Initializing security daemon...</span><br/><span style="color:#4ec9b0">Logger</span>.info(<span style="color:#ce9178">"Candidate environment secure."</span>);`
             },
             {
-                title: "Validate Hardware<br/>Directly in the Browser.",
-                desc: "Generate waveforms and monitor terminal outputs natively within a unified, dual-editor workspace.",
-                filename: "testbench.sv",
-                code: `<span style="color:#569cd6">module</span> tb();<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> clk, rst;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] q;<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;counter dut(.*);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">initial begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpfile</span>(<span style="color:#ce9178">"waves.vcd"</span>);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpvars</span>(<span style="color:#b5cea8">0</span>, tb);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clk = <span style="color:#b5cea8">0</span>; rst = <span style="color:#b5cea8">1</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#20</span> rst = <span style="color:#b5cea8">0</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#200</span> <span style="color:#dcdcaa">$finish</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
+                title: "Instant Verification<br/>& Auto-Grading.",
+                desc: "Icarus Verilog backend running self-checking testbenches inside isolated Docker containers.",
+                filename: "auto_grade.sh",
+                code: `<span style="color:#569cd6">$</span> iverilog -g2012 design.sv tb.sv<br/><span style="color:#569cd6">$</span> vvp a.out<br/><span style="color:#b5cea8">[✓]</span> Test Vector 1 Passed<br/><span style="color:#b5cea8">[✓]</span> Test Vector 2 Passed<br/><br/><span style="color:#6a9955"># Finalizing results...</span><br/><span style="color:#4ec9b0">Score</span>: <span style="color:#ce9178">100/100</span>`
             }
         ];
 
@@ -461,7 +590,7 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
                 const dot = document.getElementById(`dot-${i}`);
                 if(dot) {
                     if (i === ((currentHeroSlide + 1) % heroSlides.length)) {
-                        dot.className = "w-6 h-1 rounded-full bg-indigo-500 transition-all duration-500";
+                        dot.className = "w-6 h-1 rounded-full bg-[#02569B] transition-all duration-500";
                     } else {
                         dot.className = "w-2 h-1 rounded-full bg-slate-700 transition-all duration-500";
                     }
@@ -481,852 +610,1143 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
                 codeEl.style.opacity = 1;
             }, 500);
         }
+        function goToAssessment() {
+    const token = localStorage.getItem('ls_jwt_token');
+    const user = localStorage.getItem('ls_lms_user');
 
-        window.onload = () => {
+    if (token && user) {
+        // Encode the user object to pass it safely in the URL
+        const encodedUser = encodeURIComponent(user);
+        // Pass token and user data as URL parameters
+        window.open(`https://assessment.logicsilicon.in?token=${token}&user=${encodedUser}`, '_blank');
+    } else {
+        // Fallback if they somehow click it without being logged in
+        window.open('https://assessment.logicsilicon.in', '_blank');
+    }
+}
+
+        // GLOBAL BUFFERING UI LOGIC
+// --- GLOBAL BUFFERING UI LOGIC (UPDATED WITH TIMER) ---
+        let bufferingInterval = null;
+        let bufferingStartTime = 0;
+
+        function showBuffering(msg = "Synchronizing with Database...", showTimer = false) {
+            document.getElementById('buffering-text').innerText = msg;
+            const overlay = document.getElementById('global-buffering');
+            const timerEl = document.getElementById('buffering-timer');
+            
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+
+            if (bufferingInterval) clearInterval(bufferingInterval);
+            
+            if (showTimer) {
+                timerEl.classList.remove('hidden');
+                bufferingStartTime = Date.now();
+                timerEl.innerText = "0.0s";
+                bufferingInterval = setInterval(() => {
+                    timerEl.innerText = ((Date.now() - bufferingStartTime) / 1000).toFixed(1) + "s";
+                }, 100);
+            } else {
+                timerEl.classList.add('hidden');
+            }
+        }
+
+        function hideBuffering() {
+            if (bufferingInterval) clearInterval(bufferingInterval);
+            document.getElementById('global-buffering').classList.add('hidden');
+            document.getElementById('global-buffering').classList.remove('flex');
+        }
+
+        // --- SESSION RECOVERY ON LOAD & WAKE-UP PING ---
+        window.onload = async () => {
             // WAKE UP PING: Fire a background request to Render immediately to start bootup
-            fetch("https://ide-backend-i1s5.onrender.com").catch(() => { /* Fire and forget silently */ });
+            fetch(`${NODE_BACKEND_URL}`).catch(() => { /* Fire and forget silently */ });
 
-            setInterval(cycleHeroContent, 6000);
+            setInterval(cycleHeroContent, 5000);
 
-            // Load Theme
-            const savedTheme = localStorage.getItem('ls_theme');
-            // ... (keep the rest of your existing window.onload code exactly the same)
-            if (savedTheme === 'dark') {
-                isDarkMode = true;
-                document.documentElement.classList.add('dark');
-                document.getElementById('icon-moon').classList.add('hidden');
-                document.getElementById('icon-sun').classList.remove('hidden');
-                if(document.getElementById('icon-moon-login')) {
-                    document.getElementById('icon-moon-login').classList.add('hidden');
-                    document.getElementById('icon-sun-login').classList.remove('hidden');
+            const savedSession = localStorage.getItem('ls_lms_user');
+            const savedToken = localStorage.getItem('ls_jwt_token');
+            if (savedSession && savedToken) {
+                try {
+                    state.user = JSON.parse(savedSession);
+                    state.role = state.user.role;
+                    
+                    document.getElementById('login-view').classList.remove('active');
+                    document.getElementById('dashboard-view').classList.add('active');
+                    
+                    document.getElementById('user-email-display').innerText = state.user.email;
+                    document.getElementById('user-role-display').innerText = state.user.role === 'admin' ? 'Instructor' : 'Student';
+                    
+                    updateProfileUI(state.user.email, state.user.id, state.user.batch || "Loading...");
+                    setupRoleUI();
+                    
+                    // Show buffering WITH timer while dashboard sits behind it
+                    showBuffering("Restoring Session & Fetching Data...", true);
+                    await fetchLMSData(true); 
+                    hideBuffering();
+                    
+                    switchTab('overview');
+                } catch (e) {
+                    console.error("Session restore error", e);
+                    hideBuffering();
+                    logout();
                 }
-            } else {
-                isDarkMode = false;
-                document.documentElement.classList.remove('dark');
-                document.getElementById('icon-sun').classList.add('hidden');
-                document.getElementById('icon-moon').classList.remove('hidden');
-                if(document.getElementById('icon-sun-login')) {
-                    document.getElementById('icon-sun-login').classList.add('hidden');
-                    document.getElementById('icon-moon-login').classList.remove('hidden');
-                }
             }
-
-            // Load Editor Settings
-            const savedSettings = localStorage.getItem('ls_editor_settings');
-            if(savedSettings) {
-                editorSettings = JSON.parse(savedSettings);
-                document.getElementById('setting-wrap').checked = editorSettings.wrap;
-                document.getElementById('setting-minimap').checked = editorSettings.minimap;
-                document.getElementById('setting-fontsize').value = editorSettings.fontSize;
-            }
-
-            // --- SECURE: Check for active JWT token and Session ---
-            const token = sessionStorage.getItem('ls_jwt_token');
-            const session = sessionStorage.getItem('ls_playground_user');
-            
-            if(token && session) {
-                currentUser = JSON.parse(session);
-                showSimulator();
-            } else {
-                document.getElementById('login-view').classList.add('active');
-                document.getElementById('login-view').classList.remove('hidden');
-                document.getElementById('simulator-view').classList.remove('active');
-                document.getElementById('simulator-view').classList.add('hidden');
-            }
-            initResizers();
         };
 
-        function toggleTheme() {
-            isDarkMode = !isDarkMode;
-            if (isDarkMode) {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('ls_theme', 'dark');
-                document.getElementById('icon-moon').classList.add('hidden');
-                document.getElementById('icon-sun').classList.remove('hidden');
-                if(document.getElementById('icon-moon-login')) {
-                    document.getElementById('icon-moon-login').classList.add('hidden');
-                    document.getElementById('icon-sun-login').classList.remove('hidden');
-                }
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('ls_theme', 'light');
-                document.getElementById('icon-sun').classList.add('hidden');
-                document.getElementById('icon-moon').classList.remove('hidden');
-                if(document.getElementById('icon-sun-login')) {
-                    document.getElementById('icon-sun-login').classList.add('hidden');
-                    document.getElementById('icon-moon-login').classList.remove('hidden');
-                }
-            }
-            
-            const monacoTheme = isDarkMode ? 'vs-dark' : 'vs';
-            if(editorDesign) monaco.editor.setTheme(monacoTheme);
-            if(editorTb) monaco.editor.setTheme(monacoTheme);
-            renderTabs('design');
-            renderTabs('tb');
+
+
+        // --- BASE64 HELPER ---
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
         }
 
-        // --- Settings Logic ---
-        window.toggleSettings = function(e) {
-            e.stopPropagation();
-            document.getElementById('settings-menu').classList.toggle('hidden');
-        };
-
-        window.closeSettingsMenu = function() {
-            const menu = document.getElementById('settings-menu');
-            if(menu && !menu.classList.contains('hidden')) {
-                menu.classList.add('hidden');
+        // --- SECURE API REQUEST WRAPPER ---
+        async function apiRequest(endpoint, payload) {
+            const token = localStorage.getItem('ls_jwt_token');
+            if (!token && endpoint !== '/login') {
+                logout();
+                throw new Error("No authentication token found.");
             }
-        };
-
-        window.updateEditorSettings = function() {
-            editorSettings.wrap = document.getElementById('setting-wrap').checked;
-            editorSettings.minimap = document.getElementById('setting-minimap').checked;
-            editorSettings.fontSize = parseInt(document.getElementById('setting-fontsize').value) || 14;
-
-            const opts = { 
-                wordWrap: editorSettings.wrap ? 'on' : 'off', 
-                minimap: { enabled: editorSettings.minimap }, 
-                fontSize: editorSettings.fontSize 
-            };
             
-            if(editorDesign) editorDesign.updateOptions(opts);
-            if(editorTb) editorTb.updateOptions(opts);
-            
-            localStorage.setItem('ls_editor_settings', JSON.stringify(editorSettings));
-        };
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        function showSimulator() {
-            document.getElementById('login-view').classList.remove('active');
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('simulator-view').classList.remove('hidden');
-            document.getElementById('simulator-view').classList.add('active');
-            document.getElementById('nav-user-email').innerText = currentUser.email;
-            
-            setTimeout(initMonaco, 100);
+            const res = await fetch(`${NODE_BACKEND_URL}${endpoint}`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (res.status === 401 || res.status === 403) {
+                logout();
+                throw new Error("Session expired. Please log in again.");
+            }
+
+            return res.json();
         }
 
-        // ==========================================
-        // SECURE JWT LOGIN FUNCTION
-        // ==========================================
+        // --- AUTH & CORE ---
+        function setAuthRole(role) {
+            state.role = role;
+            const btnS = document.getElementById('auth-tab-student');
+            const btnI = document.getElementById('auth-tab-instructor');
+            if(role === 'student') {
+                btnS.className = "flex-1 py-3 text-[13px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all";
+                btnI.className = "flex-1 py-3 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+            } else {
+                btnI.className = "flex-1 py-3 text-[13px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all";
+                btnS.className = "flex-1 py-3 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+            }
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
-            const email = document.getElementById('user-email').value;
-            const authString = document.getElementById('user-auth').value;
-            const btn = document.getElementById('btn-login');
+            const email = document.getElementById('auth-email').value;
+            const authString = document.getElementById('auth-password').value;
+            const btn = e.target.querySelector('button[type="submit"]');
             const errorDiv = document.getElementById('login-error');
             const errorText = document.getElementById('login-error-text');
+            const originalText = btn.innerText;
             
-            btn.innerHTML = '<div class="loader mr-2 border-white/30 border-t-white"></div> Verifying...';
+            // Note: NO showBuffering() here. Just button state.
+            btn.innerText = "Verifying...";
             btn.disabled = true;
             errorDiv.classList.add('hidden');
 
             try {
-                // Fetching from the Secure Node Backend, NOT Google Apps Script directly
-                let res = await fetch(AUTH_API_URL, {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ email, authString })
-                });
+                const data = await apiRequest('/login', { role: state.role, email: email, authString: authString });
                 
-                let data = await res.json();
-                
-                if (data.status === 'success' && data.token) {
-                    // STORE THE VIP JWT PASS
-                    sessionStorage.setItem('ls_jwt_token', data.token);
+                if (data.status === 'success') {
+                    const userId = state.role === 'student' ? authString : 'ADMIN';
+                    state.user = { email: email, role: state.role, id: userId, batch: data.batch };
                     
-                    currentUser = data.user || { email: email, role: 'student' };
-                    sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
-
-                    // --- NEW: RESET GITHUB SYNC ON FRESH LOGIN ---
-                    sessionStorage.removeItem('ls_gh_owner');
-                    sessionStorage.removeItem('ls_gh_repo');
-                    sessionStorage.removeItem('ls_gh_pat');
+                    localStorage.setItem('ls_lms_user', JSON.stringify(state.user));
+                    localStorage.setItem('ls_jwt_token', data.token); // Store JWT securely
                     
-                    currentGitOwner = null;
-                    currentGitRepo = null;
-                    currentGitPat = null;
-
-                    const gitBtn = document.getElementById('btn-connect-git');
-                    if (gitBtn) {
-                        gitBtn.innerText = "Connect Repo";
-                    }
-                    // ---------------------------------------------
-
-                    showSimulator();
+                    // 1. Immediately transition to the Dashboard UI Skeleton
+                    document.getElementById('login-view').classList.remove('active');
+                    document.getElementById('dashboard-view').classList.add('active');
+                    
+                    document.getElementById('user-email-display').innerText = email;
+                    document.getElementById('user-role-display').innerText = state.role === 'admin' ? 'Instructor' : 'Student';
+                    
+                    updateProfileUI(email, userId, data.batch);
+                    setupRoleUI();
+                    
+                    // 2. Show buffering WITH seconds timer
+                    showBuffering("Loading Portal Data...", true);
+                    
+                    // 3. Fetch data in the background (browser paints the dashboard while this awaits)
+                    await fetchLMSData(true); 
+                    
+                    // 4. Reveal fully loaded dashboard
+                    hideBuffering();
+                    switchTab('overview');
                 } else {
                     errorText.innerText = data.message || "Invalid credentials. Please verify your access.";
                     errorDiv.classList.remove('hidden');
                 }
             } catch(err) {
-                errorText.innerText = "Network error. Unable to reach backend authentication server.";
+                errorText.innerText = "Network error. Please ensure the Render backend is running.";
                 errorDiv.classList.remove('hidden');
             } finally {
-                btn.innerHTML = 'Secure Login';
+                btn.innerText = originalText;
                 btn.disabled = false;
             }
         }
 
-// Check session storage on load to update the Connect button UI
-window.addEventListener('DOMContentLoaded', () => {
-    if(currentGitOwner && currentGitRepo) {
-        const btn = document.getElementById('btn-connect-git');
-        if(btn) btn.innerText = "Connected ✅";
-    }
-});
-
-function connectGitHub() {
-    const repoUrl = prompt("Enter your GitHub Repository URL:\n(e.g., https://github.com/username/repository)");
-    if (!repoUrl) return;
-
-    const pat = prompt("Enter your GitHub Personal Access Token (PAT):\n(Requires 'repo' scope. We only store this locally in your browser for this session).");
-    if (!pat) return;
-
-    // Extract username and repo name from the URL
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
-    
-    if (match) {
-        currentGitOwner = match[1];
-        currentGitRepo = match[2].replace('.git', ''); // strip .git if they copied the clone URL
-        currentGitPat = pat;
-
-        sessionStorage.setItem('ls_gh_owner', currentGitOwner);
-        sessionStorage.setItem('ls_gh_repo', currentGitRepo);
-        sessionStorage.setItem('ls_gh_pat', currentGitPat);
-
-        document.getElementById('btn-connect-git').innerText = "Connected ✅";
-        alert(`Successfully linked to ${currentGitOwner}/${currentGitRepo} for this session!`);
-    } else {
-        alert("Invalid GitHub URL. Please ensure it looks like: https://github.com/username/repo");
-    }
-}
-
-async function saveToGitHub() {
-    if (!currentGitOwner || !currentGitRepo || !currentGitPat) {
-        alert("Please connect your GitHub repository first from the Settings (⚙️) menu.");
-        return;
-    }
-
-    const token = sessionStorage.getItem('ls_jwt_token');
-    if(!token) {
-        alert("Security Error: No active session. Please log out and log in again.");
-        return;
-    }
-
-    // Capture latest editor content
-    if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-    if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
-
-    let defaultName = `project_${Date.now()}.sv`;
-    let filename = prompt(`Commit to ${currentGitOwner}/${currentGitRepo}\nEnter filename:`, defaultName);
-    
-    if (filename === null) return;
-    filename = filename.trim() || defaultName;
-    if (!filename.endsWith('.sv') && !filename.endsWith('.v') && !filename.endsWith('.txt')) filename += '.sv';
-
-    const fileContent = bundleFiles(); 
-    const base64Data = btoa(unescape(encodeURIComponent(fileContent))); 
-
-    const btn = document.getElementById('btn-save-git');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = `<div class="w-4 h-4 rounded-full border-2 border-slate-400 border-t-white animate-spin"></div><span class="hidden sm:inline">Pushing...</span>`;
-    btn.disabled = true;
-    btn.classList.add('opacity-70', 'cursor-not-allowed');
-
-    try {
-        const res = await fetch(GIT_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify({
-                filename: filename,
-                fileBase64: base64Data,
-                owner: currentGitOwner,
-                repo: currentGitRepo,
-                pat: currentGitPat
-            })
-        });
-        
-        if (res.status === 401 || res.status === 403) throw new Error("UNAUTHORIZED: Invalid or expired session token.");
-
-        const data = await res.json();
-        
-        if(data.status === 'success') {
-            alert(`Successfully pushed to GitHub!\nView file: ${data.url}`);
-        } else {
-            alert(`GitHub Error: ${data.message}\nMake sure your PAT has the correct permissions and the repository exists.`);
+        function updateProfileUI(email, id, batch) {
+            const namePart = email.split('@')[0];
+            const capitalizedName = namePart.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+            
+            document.getElementById('profile-avatar').innerText = capitalizedName.charAt(0);
+            document.getElementById('profile-name').innerText = capitalizedName;
+            document.getElementById('profile-detail-name').innerText = capitalizedName;
+            document.getElementById('profile-email').innerText = email;
+            document.getElementById('profile-detail-id').innerText = id === 'ADMIN' ? 'Instructor-Account' : id;
+            document.getElementById('profile-batch').innerText = batch || "Loading...";
+            document.getElementById('profile-batch-sub').innerText = batch || "Loading...";
         }
-    } catch(err) {
-        console.error(err);
-        alert(err.message.includes("UNAUTHORIZED") ? err.message : "Network error while communicating with the backend server.");
-    } finally {
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
-        btn.classList.remove('opacity-70', 'cursor-not-allowed');
-    }
-}
 
 function logout() {
-            sessionStorage.removeItem('ls_jwt_token'); // Destroy the token
-            sessionStorage.removeItem('ls_playground_user');
-            sessionStorage.removeItem('ls_last_vcd');
-            currentUser = null;
-	    // Wipe Git Session
-    sessionStorage.removeItem('ls_gh_owner');
-    sessionStorage.removeItem('ls_gh_repo');
-    sessionStorage.removeItem('ls_gh_pat');
-    currentGitOwner = currentGitRepo = currentGitPat = null;
-
+            // 1. Completely wipe all local and session storage data
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // 2. Reset the internal application state
+            state.user = null;
+            state.activeLectureId = null;
+            
+            // 3. Swap the views back to the login screen
+            document.getElementById('dashboard-view').classList.remove('active');
             document.getElementById('login-view').classList.add('active');
-            document.getElementById('login-view').classList.remove('hidden');
-            document.getElementById('simulator-view').classList.remove('active');
-            document.getElementById('simulator-view').classList.add('hidden');
-            if (editorDesign) { editorDesign.dispose(); editorDesign = null; }
-            if (editorTb) { editorTb.dispose(); editorTb = null; }
+            
+            // 4. Clear the login form inputs for security
+            document.getElementById('auth-email').value = ''; 
+            document.getElementById('auth-password').value = '';
         }
 
-
-
-        // --- Multi-File Functions ---
-        function renderTabs(paneType) {
-            const container = document.getElementById(`${paneType}-tabs`);
-            const files = paneType === 'design' ? designFiles : tbFiles;
-            const activeIdx = paneType === 'design' ? activeDesignIdx : activeTbIdx;
-            
-            container.innerHTML = '';
-            files.forEach((file, idx) => {
-                const isActive = idx === activeIdx;
-                const tab = document.createElement('div');
+        async function fetchLMSData(quiet = false) {
+            if (!quiet) showBuffering("Synchronizing records with Database...");
+            try {
+                const data = await apiRequest('/api/lms', { action: 'fetchLMSData' });
                 
-                let activeClasses = isActive 
-                    ? 'bg-white dark:bg-[#1e1e1e] border-slate-200 dark:border-[#27272a] border-b-0 rounded-t-md z-10' 
-                    : 'bg-transparent border-transparent hover:bg-slate-200 dark:hover:bg-[#252526]';
-                
-                let textClasses = isActive 
-                    ? 'text-slate-700 dark:text-slate-300' 
-                    : 'text-slate-500 dark:text-slate-400';
-                
-                let svgIcon = paneType === 'design' 
-                    ? `<svg class="w-3.5 h-3.5 text-[#0ea5e9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-                    : `<svg class="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-
-                let closeBtn = idx > 0 ? `<div onclick="deleteFile('${paneType}', ${idx}, event)" class="ml-1.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors" title="Delete File"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></div>` : '';
-
-                tab.className = `px-4 py-2 border flex items-center gap-2 relative -mb-[1px] cursor-pointer transition-colors shrink-0 ${activeClasses}`;
-                tab.onclick = () => switchFileTab(paneType, idx);
-                
-                tab.innerHTML = `
-                    ${svgIcon}
-                    <span class="font-medium text-[13px] font-mono tracking-tight ${textClasses}">${file.name}</span>
-                    ${closeBtn}
-                `;
-                container.appendChild(tab);
-            });
-        }
-
-        window.deleteFile = function(paneType, idx, e) {
-            e.stopPropagation();
-            if(!confirm("Delete file '" + (paneType === 'design' ? designFiles[idx].name : tbFiles[idx].name) + "'?")) return;
-
-            if (paneType === 'design') {
-                if (activeDesignIdx !== idx && editorDesign) {
-                    designFiles[activeDesignIdx].content = editorDesign.getValue();
-                }
-                
-                designFiles.splice(idx, 1);
-                
-                if (activeDesignIdx === idx) {
-                    activeDesignIdx = Math.max(0, idx - 1);
-                    if(editorDesign) editorDesign.setValue(designFiles[activeDesignIdx].content);
-                } else if (activeDesignIdx > idx) {
-                    activeDesignIdx--;
-                }
-                renderTabs('design');
-            } else {
-                if (activeTbIdx !== idx && editorTb) {
-                    tbFiles[activeTbIdx].content = editorTb.getValue();
-                }
-                
-                tbFiles.splice(idx, 1);
-                
-                if (activeTbIdx === idx) {
-                    activeTbIdx = Math.max(0, idx - 1);
-                    if(editorTb) editorTb.setValue(tbFiles[activeTbIdx].content);
-                } else if (activeTbIdx > idx) {
-                    activeTbIdx--;
-                }
-                renderTabs('tb');
-            }
-        }
-
-        window.addFile = function(paneType) {
-            let filename = prompt("Enter new file name (e.g., alu.sv):");
-            if (!filename) return;
-            filename = filename.trim();
-            if (!filename.endsWith('.sv') && !filename.endsWith('.v') && !filename.endsWith('.vh')) {
-                filename += '.sv';
-            }
-            
-            if (paneType === 'design') {
-                if (designFiles.some(f => f.name === filename)) return alert("File already exists!");
-                designFiles.push({ name: filename, content: '// ' + filename + '\n' });
-                switchFileTab('design', designFiles.length - 1);
-            } else {
-                if (tbFiles.some(f => f.name === filename)) return alert("File already exists!");
-                tbFiles.push({ name: filename, content: '// ' + filename + '\n' });
-                switchFileTab('tb', tbFiles.length - 1);
-            }
-        }
-
-        function switchFileTab(paneType, newIdx) {
-            if (paneType === 'design') {
-                if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-                activeDesignIdx = newIdx;
-                if(editorDesign) editorDesign.setValue(designFiles[activeDesignIdx].content);
-                renderTabs('design');
-            } else {
-                if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
-                activeTbIdx = newIdx;
-                if(editorTb) editorTb.setValue(tbFiles[activeTbIdx].content);
-                renderTabs('tb');
-            }
-        }
-
-        function toggleMaximize(pane) {
-            const designPane = document.getElementById('design-pane');
-            const tbPane = document.getElementById('tb-pane');
-            const hResizer = document.getElementById('h-resizer');
-            
-            const maxIconDesign = document.getElementById('max-icon-design');
-            const maxIconTb = document.getElementById('max-icon-tb');
-            const expandSvg = "M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zm6 10h2v6h-6v-2h4v-4zM4 14h2v4h4v2H4v-6z";
-            const shrinkSvg = "M10 10H4V8h4V4h2v6zm4 0h6V8h-4V4h-2v6zm-4 4H4v2h4v4h2v-6zm4 0h6v2h-4v4h-2v-6z";
-
-            if (maximizedPane === pane) {
-                // Restore
-                maximizedPane = null;
-                designPane.classList.remove('pane-maximized', 'pane-hidden');
-                tbPane.classList.remove('pane-maximized', 'pane-hidden');
-                hResizer.classList.remove('pane-hidden');
-                designPane.style.width = '50%';
-                
-                maxIconDesign.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${expandSvg}"></path>`;
-                maxIconTb.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${expandSvg}"></path>`;
-            } else {
-                // Maximize
-                maximizedPane = pane;
-                if (pane === 'design') {
-                    designPane.classList.add('pane-maximized');
-                    designPane.classList.remove('pane-hidden');
-                    tbPane.classList.add('pane-hidden');
-                    tbPane.classList.remove('pane-maximized');
-                    hResizer.classList.add('pane-hidden');
-                    maxIconDesign.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${shrinkSvg}"></path>`;
-                } else {
-                    tbPane.classList.add('pane-maximized');
-                    tbPane.classList.remove('pane-hidden');
-                    designPane.classList.add('pane-hidden');
-                    designPane.classList.remove('pane-maximized');
-                    hResizer.classList.add('pane-hidden');
-                    maxIconTb.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${shrinkSvg}"></path>`;
-                }
-            }
-            
-            setTimeout(() => {
-                if (editorDesign) editorDesign.layout();
-                if (editorTb) editorTb.layout();
-            }, 50);
-        }
-
-        // --- Frontend File Bundler & Preprocessor ---
-        function bundleFiles() {
-            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
-            
-            let allFiles = [...designFiles, ...tbFiles];
-            let includedFiles = new Set();
-            
-            function resolveIncludes(content, filename) {
-                let lines = content.split('\n');
-                let output = [];
-                output.push(`\`line 1 "${filename}" 0`);
-                
-                for (let i = 0; i < lines.length; i++) {
-                    let match = lines[i].match(/^\s*`include\s+"([^"]+)"/);
-                    if (match) {
-                        let incName = match[1];
-                        let incFile = allFiles.find(f => f.name === incName);
-                        if (incFile) {
-                            includedFiles.add(incName);
-                            output.push(`// --- Included from ${incName} ---`);
-                            output.push(resolveIncludes(incFile.content, incName));
-                            output.push(`// --- End Include ${incName} ---`);
-                            output.push(`\`line ${i + 2} "${filename}" 0`); 
+                if (data.status === 'success') {
+                    state.assignments = []; state.lectures = []; state.materials = []; state.certificates = data.certificates || [];
+                    
+                    data.items.forEach(item => {
+                        if (item.type === 'Assignment') {
+                            state.assignments.push({
+                                id: item.id, title: item.title, category: item.category, 
+                                maxMarks: parseInt(item.durationMarks), filename: item.urlFile, submissions: []
+                            });
+                        } else if (item.type === 'Video') {
+                            state.lectures.push({
+                                id: item.id, type: item.type, title: item.title, 
+                                category: item.category, duration: item.durationMarks, url: item.urlFile
+                            });
                         } else {
-                            output.push(lines[i]); 
+                            state.materials.push({
+                                id: item.id, type: item.type, title: item.title, 
+                                category: item.category, duration: item.durationMarks, url: item.urlFile
+                            });
                         }
-                    } else {
-                        output.push(lines[i]);
-                    }
+                    });
+
+                    data.submissions.forEach(sub => {
+                        // CRITICAL FIX: Match using Title (which backend stores in sub.title)
+                        const ass = state.assignments.find(a => String(a.title) === String(sub.title || sub.assId));
+                        if(ass) {
+                            ass.submissions.push({
+                                studentEmail: sub.studentEmail, filename: sub.filename,
+                                marks: sub.marks !== "" && sub.marks !== undefined && sub.marks !== null ? sub.marks : undefined, 
+                                remarks: sub.remarks
+                            });
+                        }
+                    });
+                    
+                    if(state.lectures.length > 0 && !state.activeLectureId) state.activeLectureId = state.lectures[0].id;
+                    
+                    renderLectures();
+                    renderAssignments();
+                    renderCertificates();
+                    updateOverview();
                 }
-                return output.join('\n');
+            } catch (err) { 
+                console.error("Fetch Data Error", err); 
+            } finally {
+                if (!quiet) hideBuffering();
             }
-            
-            let finalPayload = "";
-            
-            // First pass: Resolve everything starting from testbenches
-            let tbPayloads = tbFiles.map(f => {
-                if (!includedFiles.has(f.name)) return resolveIncludes(f.content, f.name);
-                return "";
-            }).filter(p => p !== "").join("\n\n");
-            
-            // Second pass: Add any design files not explicitly included
-            let designPayloads = designFiles.map(f => {
-                if (!includedFiles.has(f.name)) return resolveIncludes(f.content, f.name);
-                return "";
-            }).filter(p => p !== "").join("\n\n");
-
-            finalPayload = designPayloads + "\n\n" + tbPayloads;
-            return finalPayload;
         }
 
-        function initMonaco() {
-            require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-            require(['vs/editor/editor.main'], function() {
-                const commonConfig = {
-                    language: 'verilog',
-                    theme: isDarkMode ? 'vs-dark' : 'vs',
-                    automaticLayout: true,
-                    fontSize: editorSettings.fontSize,
-                    wordWrap: editorSettings.wrap ? 'on' : 'off',
-                    minimap: { enabled: editorSettings.minimap },
-                    fontFamily: "'Fira Code', Consolas, monospace",
-                    padding: { top: 16, bottom: 16 },
-                    scrollBeyondLastLine: false,
-                    smoothScrolling: true,
-                    renderLineHighlight: 'all',
-                    cursorBlinking: 'smooth',
-                    cursorSmoothCaretAnimation: true
-                };
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            if(event && event.currentTarget && event.currentTarget.classList) event.currentTarget.classList.add('active');
 
-                if(editorDesign) editorDesign.dispose();
-                editorDesign = monaco.editor.create(document.getElementById('monaco-design'), {
-                    value: designFiles[activeDesignIdx].content,
-                    ...commonConfig
-                });
-
-                if(editorTb) editorTb.dispose();
-                editorTb = monaco.editor.create(document.getElementById('monaco-tb'), {
-                    value: tbFiles[activeTbIdx].content,
-                    ...commonConfig
-                });
-                
-                renderTabs('design');
-                renderTabs('tb');
-            });
+            if(tabId === 'assignments') renderAssignments();
+            if(tabId === 'courses') renderLectures();
+            if(tabId === 'certificates') renderCertificates();
+            if(tabId === 'overview') { updateOverview(); renderCalendar(); }
         }
 
-        // --- UPDATED DOWNLOAD LOGIC ---
-        function downloadCode() {
-            // Save active editors
-            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+        function setupRoleUI() {
+            if(state.user.role === 'admin') {
+                document.getElementById('btn-add-lecture').classList.remove('hidden');
+                document.getElementById('btn-add-assignment').classList.remove('hidden');
+                document.getElementById('instructor-cert-area').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-add-lecture').classList.add('hidden');
+                document.getElementById('btn-add-assignment').classList.add('hidden');
+                document.getElementById('instructor-cert-area').classList.add('hidden');
+            }
+        }
 
-            // Prompt user for custom filename
-            let defaultName = `ls_project_${Date.now()}.sv`;
-            let filename = prompt("Enter a name for your exported project:", defaultName);
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden'); modal.classList.remove('flex');
+            }
+        }
 
-            // Abort if the user clicks "Cancel"
-            if (filename === null) return;
-
-            // Clean up the string and ensure it has a valid extension
-            filename = filename.trim();
-            if (filename === "") filename = defaultName;
-            if (!filename.endsWith('.sv') && !filename.endsWith('.v') && !filename.endsWith('.txt')) {
-                filename += '.sv';
+        function updateOverview() {
+            if(state.user) {
+                const namePart = state.user.email.split('@')[0];
+                const capitalizedName = namePart.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+                document.getElementById('overview-user-name').innerText = capitalizedName;
             }
 
-            let out = `// ========================================================
-// 🚀 Project exported from LogicSilicon Simulator
-// 🌐 Verify any silicon right in your browser!
-// 🔗 https://ide.logicsilicon.in
-// ========================================================\n\n`;
-
-            designFiles.forEach(f => {
-                out += `// === DESIGN FILE: ${f.name} ===\n`;
-                out += f.content + "\n\n";
-            });
-
-            tbFiles.forEach(f => {
-                out += `// === TESTBENCH FILE: ${f.name} ===\n`;
-                out += f.content + "\n\n";
-            });
+            document.getElementById('overview-lecture-count').innerText = state.lectures.length + state.materials.length;
             
-            const blob = new Blob([out], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename; // Applied custom filename
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function triggerUpload() {
-            document.getElementById('file-upload').click();
-        }
-
-        // --- UPDATED UPLOAD LOGIC ---
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const content = e.target.result;
+            let tasksHtml = '';
+            
+            if(state.user.role === 'student') {
+                let pendingAssignments = state.assignments.filter(a => !a.submissions.find(s => String(s.studentEmail).toLowerCase() === state.user.email.toLowerCase()));
+                document.getElementById('overview-pending-count').innerText = pendingAssignments.length;
+                document.getElementById('overview-pending-text').innerText = "Requires your action";
                 
-                // Check if it's a LogicSilicon multi-file format
-                if (content.includes("// === DESIGN FILE:") || content.includes("// === TESTBENCH FILE:")) {
-                    let newDesignFiles = [];
-                    let newTbFiles = [];
-                    let lines = content.split('\n');
-                    
-                    let currentFile = null;
-                    let currentType = null;
-                    let currentContent = [];
-
-                    for(let i=0; i<lines.length; i++) {
-                        let dMatch = lines[i].match(/^\/\/ === DESIGN FILE: (.+) ===/);
-                        let tMatch = lines[i].match(/^\/\/ === TESTBENCH FILE: (.+) ===/);
-                        
-                        if(dMatch || tMatch) {
-                            // Save previous block
-                            if(currentFile) {
-                                if(currentType === 'design') newDesignFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
-                                else newTbFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
-                            }
-                            // Start new block
-                            currentFile = dMatch ? dMatch[1] : tMatch[1];
-                            currentType = dMatch ? 'design' : 'tb';
-                            currentContent = [];
-                        } else {
-                            if(currentFile) currentContent.push(lines[i]);
-                        }
+                pendingAssignments.slice(0, 3).forEach(task => {
+                    tasksHtml += `
+                        <div class="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 border border-purple-100">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">${task.title}</h4>
+                                    <p class="text-xs text-slate-500 mt-0.5">${task.category} &middot; ${task.maxMarks} Marks</p>
+                                </div>
+                            </div>
+                            <button onclick="switchTab('assignments')" class="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-slate-800 transition-colors">Start</button>
+                        </div>
+                    `;
+                });
+            } else {
+                let toGrade = 0;
+                let gradingTasks = [];
+                state.assignments.forEach(a => { 
+                    let ungraded = a.submissions.filter(s => s.marks === undefined || s.marks === null || s.marks === "");
+                    toGrade += ungraded.length;
+                    if (ungraded.length > 0) {
+                        gradingTasks.push({ title: a.title, pending: ungraded.length });
                     }
-                    // Save last block
-                    if(currentFile) {
-                        if(currentType === 'design') newDesignFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
-                        else newTbFiles.push({name: currentFile, content: currentContent.join('\n').trim()});
-                    }
+                });
+                document.getElementById('overview-pending-count').innerText = toGrade;
+                document.getElementById('overview-pending-text').innerText = "Requires grading";
+                
+                gradingTasks.slice(0, 3).forEach(task => {
+                    tasksHtml += `
+                        <div class="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">${task.title}</h4>
+                                    <p class="text-xs text-slate-500 mt-0.5">${task.pending} Submissions to Grade</p>
+                                </div>
+                            </div>
+                            <button onclick="switchTab('assignments')" class="px-5 py-2 bg-[#02569B] text-white text-xs font-bold rounded-lg shadow-sm hover:bg-[#01437A] transition-colors">Grade</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            if(tasksHtml === '') {
+                tasksHtml = `<div class="p-6 text-center text-slate-500 text-sm font-medium">No pending tasks at the moment! 🎉</div>`;
+            }
+            document.getElementById('overview-upcoming-tasks').innerHTML = tasksHtml;
+        }
 
-                    // Apply parsed files
-                    if(newDesignFiles.length > 0) designFiles = newDesignFiles;
-                    if(newTbFiles.length > 0) tbFiles = newTbFiles;
-                    
-                    activeDesignIdx = 0;
-                    activeTbIdx = 0;
-                    if(editorDesign && designFiles.length > 0) editorDesign.setValue(designFiles[0].content);
-                    if(editorTb && tbFiles.length > 0) editorTb.setValue(tbFiles[0].content);
-                    
-                    renderTabs('design');
-                    renderTabs('tb');
-                    alert("Project successfully imported with split tabs!");
-                    
+        // --- SCROLLABLE CALENDAR ---
+        let calMonth = new Date().getMonth();
+        let calYear = new Date().getFullYear();
+
+        window.changeCalMonth = function(offset) {
+            calMonth += offset;
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            else if (calMonth > 11) { calMonth = 0; calYear++; }
+            renderCalendar();
+        };
+
+        function renderCalendar() {
+            const calContainer = document.getElementById('calendar-container');
+            if(!calContainer) return;
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const firstDay = new Date(calYear, calMonth, 1).getDay();
+            const today = new Date();
+            const isCurrentMonth = today.getMonth() === calMonth && today.getFullYear() === calYear;
+
+            let html = `
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-slate-800 text-lg">${monthNames[calMonth]} ${calYear}</h3>
+                    <div class="flex gap-1.5">
+                        <button onclick="changeCalMonth(-1)" class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-slate-800 transition-colors">&lt;</button>
+                        <button onclick="changeCalMonth(1)" class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-slate-800 transition-colors">&gt;</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-y-2 text-center">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Su</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Mo</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tu</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">We</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Th</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Fr</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sa</div>
+            `;
+            
+            for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isToday = isCurrentMonth && i === today.getDate();
+                
+                let eventDot = '';
+                if (isCurrentMonth) {
+                    if (i === today.getDate() + 2) eventDot = `<div class="w-1 h-1 rounded-full bg-purple-500 mt-1 absolute bottom-1.5"></div>`;
+                    else if (i === today.getDate() + 5) eventDot = `<div class="w-1 h-1 rounded-full bg-[#02569B] mt-1 absolute bottom-1.5"></div>`;
+                }
+
+                if (isToday) {
+                html += `
+                    <div class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-bold bg-[#02569B] text-white shadow-lg shadow-blue-200 cursor-pointer relative">
+                        ${i}
+                        <div class="w-1 h-1 rounded-full bg-white mt-1 absolute bottom-1.5"></div>
+                    </div>`;
                 } else {
-                    // Standard Verilog File: Replace ACTIVE design tab content
-                    if(editorDesign) editorDesign.setValue(content);
-                    designFiles[activeDesignIdx].content = content;
-                    alert(`Standard file loaded into the active Design tab: ${designFiles[activeDesignIdx].name}`);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; 
-        }
-
-        // ==========================================
-        // SECURE COMPILATION EXECUTION
-        // ==========================================
-        async function runSimulation() {
-    if(!editorDesign || !editorTb) return;
-    
-    const token = sessionStorage.getItem('ls_jwt_token');
-    if(!token) {
-        alert("Security Error: No active session. Please log out and log in again.");
-        return;
-    }
-
-    const btnRun = document.getElementById('btn-run');
-    const btnStop = document.getElementById('btn-stop');
-    const output = document.getElementById('terminal-output');
-    const waveBtn = document.getElementById('btn-waveform');
-    
-    // Switch UI to Running State
-    btnRun.classList.add('hidden');
-    btnStop.classList.remove('hidden');
-    btnStop.classList.add('flex');
-    waveBtn.classList.add('hidden'); 
-
-    const logColor = isDarkMode ? 'text-indigo-400' : 'text-indigo-600';
-    output.innerHTML = `<span class="${logColor}">Initiating Secure SystemVerilog compilation pipeline...</span>\n`;
-
-    // Use the advanced multi-file preprocessor bundler!
-    const payloadCode = bundleFiles();
-
-    // Set up AbortController for manual stopping
-    abortController = new AbortController();
-    const signal = abortController.signal;
-
-    try {
-        // ATTACH THE JWT TOKEN TO THE HEADERS
-        const res = await fetch(VERILOG_API_URL, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // <--- The VIP Pass
-            },
-            body: JSON.stringify({ code: payloadCode }),
-            signal: signal
-        });
-        
-        const data = await res.json();
-        
-        // Security check failure handling
-        if (res.status === 401 || res.status === 403) {
-            throw new Error("UNAUTHORIZED: " + (data.output || "Invalid token."));
-        }
-
-        // Clean up /tmp/ isolated directory paths from standard Icarus output
-        let processedOutput = data.output || "";
-        processedOutput = processedOutput.replace(/\/tmp\/[a-zA-Z0-9_.-]+\//g, "");
-
-        if (data.status === "success") {
-            const successColor = isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
-            output.innerHTML += `<span class="${successColor}">\n--- SIMULATION SUCCESS ---\n\n</span>`;
-            const safeOutput = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            output.innerHTML += `<span>${safeOutput}</span>`;
-
-            // === UPDATED VCD/JSON CAPTURE LOGIC ===
-            if (data.vcd) {
-                sessionStorage.setItem('ls_last_vcd', data.vcd);
-                sessionStorage.setItem('ls_vcd_json', JSON.stringify(data.vcdJson)); // Save pre-parsed JSON
-                waveBtn.classList.remove('hidden');
+                    html += `
+                    <div class="aspect-square flex flex-col items-center justify-center rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer relative">
+                        ${i}
+                        ${eventDot}
+                    </div>`;
             }
-            // =====================================
+            }
+            
+            html += `
+                </div>
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Legend</h4>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                            <div class="w-2 h-2 rounded-full bg-white border border-slate-300"></div> Today
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                            <div class="w-2 h-2 rounded-full bg-[#02569B]"></div> Lecture / Material
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                            <div class="w-2 h-2 rounded-full bg-purple-500"></div> Assignment Due
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            calContainer.innerHTML = html;
+        }
 
-        } else {
-            const errorColor = isDarkMode ? 'text-red-400' : 'text-red-600';
-            output.innerHTML += `<span class="${errorColor}">\n--- COMPILATION/EXECUTION ERROR ---\n\n</span>`;
-            const safeError = processedOutput.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            output.innerHTML += `<span class="${isDarkMode ? 'text-red-300' : 'text-red-500'}">${safeError}</span>`;
+        // --- LECTURES & MATERIALS LOGIC ---
+        function getEmbedUrl(url) {
+            if (!url) return '';
+            let ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+            if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+            
+            let driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveMatch) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+            
+            return url;
         }
-    } catch (err) {
-        if (err.name === 'AbortError') {
-            const abortColor = isDarkMode ? 'text-amber-400' : 'text-amber-600';
-            output.innerHTML += `<span class="${abortColor}">\n--- SIMULATION ABORTED ---\n</span>`;
-            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">The simulation was manually stopped by the user.</span>`;
-        } else if (err.message.includes("UNAUTHORIZED")) {
-            const secColor = isDarkMode ? 'text-red-500' : 'text-red-600';
-            output.innerHTML += `<span class="${secColor}">\n--- SECURITY ERROR ---\n</span>`;
-            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">${err.message}</span>`;
-        } else {
-            const netErrColor = isDarkMode ? 'text-red-500' : 'text-red-600';
-            output.innerHTML += `<span class="${netErrColor}">\n--- NETWORK ERROR ---\n</span>`;
-            output.innerHTML += `<span class="${isDarkMode ? 'text-slate-400' : 'text-slate-500'}">Failed to connect to the LogicSilicon compilation server. Please try again later.</span>`;
-        }
-    } finally {
-        // Revert UI to Default State
-        btnStop.classList.add('hidden');
-        btnStop.classList.remove('flex');
-        btnRun.classList.remove('hidden');
-        abortController = null;
-    }
+
+        window.filterLectures = function(cat) { state.lecFilter = cat; renderLectures(); }
+        // 1. This ONLY updates the UI when you click the sidebar
+window.selectLecture = function(id) {
+    state.activeLectureId = id;
+    renderLectures(); 
 }
 
-        function stopSimulation() {
-            if (abortController) {
-                abortController.abort();
+// Variable to store the player instance
+// --- INLINE PLAYER LOGIC (YOUTUBE + GOOGLE DRIVE) ---
+        let inlinePlayer = null;
+        let watermarkInterval = null;
+
+        function extractYouTubeID(url) {
+            if (!url) return null;
+            let match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+            return match ? match[1] : null;
+        }
+
+        // New Helper to extract Google Drive File ID
+        function getDriveId(url) {
+            if (!url) return null;
+            let match = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+            return match ? match[1] : null;
+        }
+
+        window.selectLecture = function(id) {
+            state.activeLectureId = id;
+            if (inlinePlayer && typeof inlinePlayer.stopVideo === 'function') {
+                inlinePlayer.stopVideo(); 
+            }
+            renderLectures(); 
+        }
+
+        window.launchPlayer = function() {
+            const activeLec = state.lectures.find(l => String(l.id) === String(state.activeLectureId));
+            if (!activeLec) return;
+
+            const videoUrl = activeLec.url || activeLec.urlFile;
+            const ytId = extractYouTubeID(videoUrl);
+            const driveId = getDriveId(videoUrl);
+
+            // Validate Link
+            if (!ytId && !driveId) {
+                alert("Invalid link. Please provide a valid YouTube or Google Drive link.");
+                return;
+            }
+
+            // Swap UI to Player
+            document.getElementById('launch-screen').classList.add('hidden');
+            document.getElementById('inline-player-container').classList.remove('hidden');
+            
+            // Show Spinner, Hide Error
+            const spinner = document.getElementById('yt-loading-spinner');
+            const errScreen = document.getElementById('yt-error-message');
+            if(spinner) { spinner.classList.remove('hidden'); spinner.classList.add('flex'); }
+            if(errScreen) { errScreen.classList.add('hidden'); errScreen.classList.remove('flex'); }
+            
+            // Setup Dynamic Watermark
+            const watermarkText = state.user ? state.user.email : "Secure Student";
+            const watermarkId = state.user ? (state.user.id !== 'ADMIN' ? state.user.id : "Instructor") : "ID";
+            const wmEl = document.getElementById('dynamic-watermark');
+            wmEl.innerHTML = `<span>${watermarkText}</span><span class="text-lg text-sky-400 tracking-widest">${watermarkId}</span>`;
+
+            if(watermarkInterval) clearInterval(watermarkInterval);
+            watermarkInterval = setInterval(() => {
+                const xOffset = Math.floor(Math.random() * 60) - 30;
+                const yOffset = Math.floor(Math.random() * 60) - 30;
+                wmEl.style.transform = `translate(${xOffset}px, ${yOffset}px) rotate(-12deg)`;
+            }, 5000);
+
+            const playerDiv = document.getElementById('yt-player-div');
+
+            // --- YOUTUBE LOGIC ---
+            if (ytId) {
+                if (inlinePlayer && typeof inlinePlayer.loadVideoById === 'function') {
+                    inlinePlayer.loadVideoById(ytId);
+                } else {
+                    playerDiv.innerHTML = ''; // Clear div
+                    inlinePlayer = new YT.Player('yt-player-div', {
+                        height: '100%',
+                        width: '100%',
+                        videoId: ytId,
+                        host: 'https://www.youtube-nocookie.com',
+                        playerVars: {
+                            'autoplay': 1, 'controls': 1, 'modestbranding': 1,
+                            'rel': 0, 'disablekb': 1, 'fs': 1,
+                            'origin': window.location.origin 
+                        },
+                        events: {
+                            'onStateChange': function(event) {
+                                if (event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.BUFFERING) {
+                                    if(spinner) { spinner.classList.add('hidden'); spinner.classList.remove('flex'); }
+                                }
+                            },
+                            'onError': function(event) {
+                                if(spinner) { spinner.classList.add('hidden'); spinner.classList.remove('flex'); }
+                                if(errScreen) { errScreen.classList.remove('hidden'); errScreen.classList.add('flex'); }
+                                const errTxt = document.getElementById('yt-error-text');
+                                if(errTxt) errTxt.innerText = "An error occurred while contacting YouTube.";
+                            }
+                        }
+                    });
+                }
+            } 
+            // --- GOOGLE DRIVE LOGIC ---
+            else if (driveId) {
+                // Destroy existing YT player if swapping formats
+                if (inlinePlayer && typeof inlinePlayer.destroy === 'function') {
+                    inlinePlayer.destroy();
+                    inlinePlayer = null;
+                }
+                
+                playerDiv.innerHTML = ''; // Clear container
+                
+                // Create Drive Iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://drive.google.com/file/d/${driveId}/preview`;
+                iframe.className = "w-full h-full absolute inset-0 z-10 pointer-events-auto border-none bg-black";
+                iframe.allow = "autoplay; fullscreen";
+                
+                // Hide spinner when the iframe finishes loading
+                iframe.onload = function() {
+                    if(spinner) { spinner.classList.add('hidden'); spinner.classList.remove('flex'); }
+                };
+
+                // Show error if iframe fails to load entirely
+                iframe.onerror = function() {
+                    if(spinner) { spinner.classList.add('hidden'); spinner.classList.remove('flex'); }
+                    if(errScreen) { errScreen.classList.remove('hidden'); errScreen.classList.add('flex'); }
+                    const errTxt = document.getElementById('yt-error-text');
+                    if(errTxt) errTxt.innerText = "Failed to load video from Google Drive. Ensure the sharing settings are set to 'Anyone with the link'.";
+                };
+
+                playerDiv.appendChild(iframe);
             }
         }
 
-        function clearTerminal() {
-            document.getElementById('terminal-output').innerHTML = `<span class="text-slate-500 dark:text-slate-500 font-medium">Terminal cleared. Waiting for execution...</span>`;
+        let materialSource = 'link';
+        window.toggleSource = function(src) {
+            materialSource = src;
+            if (src === 'link') {
+                document.getElementById('src-btn-link').className = "flex-1 py-2 text-[12px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all";
+                document.getElementById('src-btn-upload').className = "flex-1 py-2 text-[12px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+                document.getElementById('lec-link-container').classList.remove('hidden');
+                document.getElementById('lec-file-container').classList.add('hidden');
+            } else {
+                document.getElementById('src-btn-upload').className = "flex-1 py-2 text-[12px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all";
+                document.getElementById('src-btn-link').className = "flex-1 py-2 text-[12px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+                document.getElementById('lec-link-container').classList.add('hidden');
+                document.getElementById('lec-file-container').classList.remove('hidden');
+            }
         }
 
-        function openWaveformViewer() {
-            window.open('waveform.html', '_blank');
+        async function handleAddLecture(e) {
+            e.preventDefault();
+            const type = document.getElementById('lec-type').value;
+            const title = document.getElementById('lec-title').value;
+            const cat = document.getElementById('lec-cat').value;
+            const dur = document.getElementById('lec-dur').value;
+            const btn = document.getElementById('btn-submit-lec');
+
+            let urlFile = "";
+            let fileBase64 = null;
+
+            if (materialSource === 'link') {
+                urlFile = document.getElementById('lec-link').value;
+                if(!urlFile) { alert("Please enter a link."); return; }
+            } else {
+                const fileInput = document.getElementById('lec-file');
+                if(fileInput.files.length === 0) { alert("Please attach a file."); return; }
+                const file = fileInput.files[0];
+                
+                // 10MB limit to prevent browser crash
+                if (file.size > 10 * 1024 * 1024) {
+                    alert("File is too large! Maximum allowed size is 10MB. Please use Google Drive and paste the link instead.");
+                    return;
+                }
+                
+                urlFile = file.name;
+                showBuffering("Encoding File to Base64...");
+                fileBase64 = await getBase64(file);
+            }
+
+            showBuffering("Publishing Material to Cloud...");
+            const newMaterial = { id: Date.now(), type, title, category: cat, durationMarks: dur, urlFile: urlFile, fileBase64: fileBase64 };
+            
+            try {
+                await apiRequest('/api/lms', { action: 'addLMSItem', item: newMaterial });
+                await fetchLMSData(true); 
+            } catch(err) { 
+                console.error(err); 
+                alert("Error publishing material. Please try again.");
+            } finally {
+                // BUG FIX: Hide buffering when done
+                hideBuffering();
+            }
+
+            toggleModal('lecture-modal'); e.target.reset(); btn.innerText = "Publish Material";
         }
 
-        window.openRTLViewer = function() {
-    if(!editorDesign) return;
-    const currentDesignCode = editorDesign.getValue();
-    sessionStorage.setItem('ls_rtl_code', currentDesignCode);
+        function renderLectures() {
+            const container = document.getElementById('lecture-workspace');
+            container.innerHTML = '';
+            
+            let filteredLecs = state.lectures;
+            let filteredMats = state.materials;
+            
+            if (state.lecFilter !== 'All') {
+                filteredLecs = state.lectures.filter(l => l.category === state.lecFilter);
+                filteredMats = state.materials.filter(m => m.category === state.lecFilter);
+            }
 
-    // NEW: Save the Testbench code to session storage
-    if (editorTb) {
-        const currentTbCode = editorTb.getValue();
-        sessionStorage.setItem('ls_tb_code', currentTbCode);
-    }
+            if(filteredLecs.length === 0 && filteredMats.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">No course materials found.</div>`;
+                return;
+            }
+
+            let activeLec = filteredLecs.find(l => String(l.id) === String(state.activeLectureId));
+            if (!activeLec && filteredLecs.length > 0) {
+                activeLec = filteredLecs[0];
+                state.activeLectureId = activeLec.id;
+            }
+
+            let playlistHtml = '';
+            filteredLecs.forEach(lec => {
+                const isActive = String(lec.id) === String(state.activeLectureId);
+                const bgClass = isActive ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-transparent hover:bg-slate-50';
+                const textClass = isActive ? 'text-[#02569B]' : 'text-slate-700';
+                
+                playlistHtml += `
+                    <button onclick="selectLecture(${lec.id})" class="w-full text-left p-3.5 rounded-xl border transition-colors flex items-center gap-4 ${bgClass}">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-[#02569B]">
+                            <svg class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                        <div>
+                            <h5 class="text-[13px] font-bold ${textClass}">${lec.title}</h5>
+                            <p class="text-[11px] mt-0.5 text-slate-400">Duration: ${lec.duration}</p>
+                        </div>
+                    </button>
+                `;
+            });
+
+           let materialsHtml = '';
+filteredMats.forEach(mat => {
+    // CHANGED: mat.urlFile -> mat.url
+    const isPPT = mat.url && (mat.url.includes('.ppt') || mat.title.toLowerCase().includes('ppt'));
+    const iconSvg = isPPT 
+        ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>`
+        : `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
+        
+    materialsHtml += `
+        <div class="flex items-center justify-between p-3.5 rounded-xl border border-transparent hover:bg-slate-50 transition-colors group">
+            <div class="flex items-center gap-3">
+                <div class="text-red-500 bg-red-50 p-2 rounded-lg shrink-0">
+                    ${iconSvg}
+                </div>
+                <div>
+                    <h5 class="text-[13px] font-bold text-slate-800">${mat.title}</h5>
+                    <p class="text-[11px] text-slate-400 mt-0.5">${mat.duration}</p>
+                </div>
+            </div>
+            <a href="${mat.url}" target="_blank" class="bg-[#1e293b] hover:bg-black text-white text-[10px] font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                Open
+            </a>
+        </div>
+    `;
+});
+
+            if (filteredMats.length === 0) materialsHtml = '<p class="text-xs text-slate-400 italic px-2">No documents available.</p>';
+
+            let playerHtml = '';
+            if (activeLec) {
+                playerHtml = `
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col w-full relative">
+                        
+                        <div id="inline-player-container" class="relative w-full aspect-video bg-[#090E17] hidden group">
     
-    window.open('schematic.html', '_blank');
-};
+                            <div id="yt-loading-spinner" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#090E17]">
+                                <div class="w-12 h-12 border-4 border-[#02569B]/30 border-t-[#02569B] rounded-full animate-spin mb-4"></div>
+                                <p class="text-[#02569B] font-bold tracking-widest text-xs uppercase animate-pulse">Establishing Secure Connection...</p>
+                            </div>
 
-        function initResizers() {
-            const hResizer = document.getElementById('h-resizer');
-            const vResizer = document.getElementById('v-resizer');
-            const designPane = document.getElementById('design-pane');
-            const terminalSection = document.getElementById('terminal-section');
-            const topSection = document.getElementById('top-section');
+                            <div id="yt-error-message" class="absolute inset-0 z-30 hidden flex-col items-center justify-center bg-[#090E17] text-center px-6">
+                                <div class="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
+                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                </div>
+                                <h3 class="text-xl font-bold text-white mb-2">Stream Failed</h3>
+                                <p id="yt-error-text" class="text-slate-400 text-sm max-w-md">The secure video stream could not be loaded.</p>
+                                <button onclick="selectLecture('${activeLec.id}')" class="mt-6 px-6 py-2.5 border border-slate-600 text-slate-300 rounded-xl hover:bg-slate-800 hover:text-white text-sm font-bold transition-colors">Reload Player</button>
+                            </div>
+
+                            <div id="yt-player-div" class="w-full h-full absolute inset-0 z-10 pointer-events-auto"></div>
+                            
+                            <div id="dynamic-watermark" class="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center opacity-25 text-white font-black text-2xl md:text-4xl transform -rotate-12 select-none mix-blend-overlay tracking-tight drop-shadow-xl transition-transform duration-1000 ease-in-out">
+                            </div>
+
+                            <div class="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-black/90 to-transparent z-40 pointer-events-auto" oncontextmenu="return false;"></div>
+                        </div>
+
+                        <div id="launch-screen" class="w-full aspect-video bg-[#1e293b] relative flex flex-col items-center justify-center text-center p-8 border-b border-slate-200">
+                            <div class="w-16 h-16 bg-sky-500/10 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm shadow-inner">
+                                <svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                            <h3 class="text-2xl font-bold text-white mb-2 drop-shadow-md tracking-tight">${activeLec.title}</h3>
+                            <p class="text-sm text-slate-400 mb-8 font-medium">${activeLec.category} &middot; Duration: ${activeLec.duration}</p>
+                            <button onclick="launchPlayer()" class="btn-primary px-8 py-3.5 rounded-xl font-bold shadow-lg flex items-center gap-2 mx-auto hover:scale-105 transition-transform">
+                                <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                                Start Secure Stream
+                            </button>
+                        </div>
+                        
+                        <div class="p-6 flex justify-between items-start bg-white z-10 relative">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-900 mb-1">${activeLec.title}</h3>
+                                <p class="text-xs text-slate-500 font-medium">Video Resource</p>
+                            </div>
+                            <span class="text-[10px] font-bold text-[#02569B] uppercase tracking-wider bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">${activeLec.category}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                playerHtml = `<div class="bg-white rounded-[24px] border border-slate-200 shadow-sm flex items-center justify-center aspect-video text-slate-400 font-medium w-full">No active video lecture.</div>`;
+            }
+
+            container.innerHTML = `
+                <div class="lg:col-span-2">
+                    ${playerHtml}
+                </div>
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[350px]">
+                        <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-white">
+                            <svg class="w-4 h-4 text-[#02569B]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                            <h4 class="text-[11px] font-black text-[#02569B] uppercase tracking-wider">VIDEO LECTURES</h4>
+                        </div>
+                        <div class="p-3 overflow-y-auto flex-1 custom-scrollbar space-y-1">
+                            ${playlistHtml}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[200px]">
+                        <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-white">
+                            <svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            <h4 class="text-[11px] font-black text-red-500 uppercase tracking-wider">LECTURES PPTS & PDFS</h4>
+                        </div>
+                        <div class="px-5 py-2 bg-slate-50/50 border-b border-slate-100 text-[10px] text-slate-400">Materials are securely blocked from device downloads.</div>
+                        <div class="p-3 overflow-y-auto flex-1 custom-scrollbar space-y-1">
+                            ${materialsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ASSIGNMENTS LOGIC ---
+        const categoryColors = {
+            'Digital': 'bg-blue-50 text-blue-700 border-blue-300',
+            'Verilog': 'bg-emerald-50 text-emerald-700 border-emerald-300',
+            'SV': 'bg-purple-50 text-purple-700 border-purple-300',
+            'UVM': 'bg-amber-50 text-amber-700 border-amber-300'
+        };
+
+        window.filterAssignments = function(cat) {
+            state.assFilter = cat;
+            document.querySelectorAll('.ass-filter-btn').forEach(btn => {
+                if(btn.dataset.filter === cat) btn.className = "ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg bg-white text-[#02569B] shadow-sm transition-all";
+                else btn.className = "ass-filter-btn flex-1 px-5 py-2 text-[13px] font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all";
+            });
+            renderAssignments();
+        }
+
+        async function handleAddAssignment(e) {
+            e.preventDefault();
+            const title = document.getElementById('ass-title').value;
+            const cat = document.getElementById('ass-cat').value;
+            const marks = document.getElementById('ass-marks').value;
+            const fileInput = document.getElementById('ass-file');
             
-            let isResizingH = false;
-            let isResizingV = false;
-
-            hResizer.addEventListener('mousedown', (e) => {
-                if(maximizedPane) return;
-                isResizingH = true; hResizer.classList.add('active'); document.body.style.cursor = 'col-resize';
-                if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'none';
-                if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'none';
-                e.preventDefault(); 
-            });
-
-            vResizer.addEventListener('mousedown', (e) => {
-                isResizingV = true; vResizer.classList.add('active'); document.body.style.cursor = 'row-resize';
-                if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'none';
-                if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'none';
-                e.preventDefault(); 
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (isResizingH && !maximizedPane) {
-                    const containerWidth = topSection.clientWidth;
-                    let newWidth = (e.clientX / containerWidth) * 100;
-                    if (newWidth > 10 && newWidth < 90) designPane.style.width = `${newWidth}%`;
-                }
-                if (isResizingV) {
-                    const containerHeight = document.getElementById('simulator-view').clientHeight - 56;
-                    const newHeight = containerHeight - e.clientY + 56;
-                    if (newHeight > 40 && newHeight < containerHeight * 0.8) terminalSection.style.height = `${newHeight}px`;
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isResizingH || isResizingV) {
-                    isResizingH = false; isResizingV = false;
-                    hResizer.classList.remove('active'); vResizer.classList.remove('active');
-                    document.body.style.cursor = 'default';
-                    if(editorDesign) document.getElementById('monaco-design').style.pointerEvents = 'auto';
-                    if(editorTb) document.getElementById('monaco-tb').style.pointerEvents = 'auto';
-                    if (editorDesign) editorDesign.layout();
-                    if (editorTb) editorTb.layout();
-                }
-            });
+            if(fileInput.files.length === 0) { alert("Please upload an assignment PDF."); return; }
+            const file = fileInput.files[0];
             
-            window.addEventListener('resize', () => {
-                if (editorDesign) editorDesign.layout();
-                if (editorTb) editorTb.layout();
+            if (file.size > 10 * 1024 * 1024) {
+                alert("File is too large! Maximum allowed size is 10MB.");
+                return;
+            }
+            
+            const filename = file.name;
+
+            const btn = document.getElementById('btn-submit-ass'); 
+            showBuffering("Encoding Assignment PDF...");
+            
+            const fileBase64 = await getBase64(file);
+            const newItem = { id: Date.now(), type: 'Assignment', title, category: cat, durationMarks: marks, urlFile: filename, fileBase64: fileBase64 };
+            
+            showBuffering("Uploading & Publishing Assignment...");
+            try {
+                await apiRequest('/api/lms', { action: 'addLMSItem', item: newItem });
+                await fetchLMSData(true); 
+            } catch(err) { 
+                console.error(err); 
+                alert("Error publishing assignment. Please try again.");
+            } finally {
+                // BUG FIX: Hide buffering when done
+                hideBuffering();
+            }
+
+            toggleModal('assignment-modal'); e.target.reset(); btn.innerText = "Publish Assignment";
+        }
+
+        function renderAssignments() {
+            const container = document.getElementById('assignment-list');
+            container.innerHTML = '';
+
+            let filteredAss = state.assignments;
+            if (state.assFilter && state.assFilter !== 'All') filteredAss = state.assignments.filter(a => a.category === state.assFilter);
+            if(filteredAss.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">No assignments found for this category.</div>`; return;
+            }
+
+            let html = `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-4 whitespace-nowrap">Title & Resource</th>
+                                <th class="px-6 py-4 whitespace-nowrap">Category</th>
+                                <th class="px-6 py-4 whitespace-nowrap">Marks</th>
+                                <th class="px-6 py-4 whitespace-nowrap">Remarks</th>
+                                <th class="px-6 py-4 text-right whitespace-nowrap">Status / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+            `;
+
+            filteredAss.forEach(ass => {
+                const catClass = categoryColors[ass.category] || 'bg-slate-50 text-slate-700 border-slate-300';
+                let actionHtml = ''; let detailsHtml = '';
+                let marksHtml = `${ass.maxMarks} pts`;
+                let remarksHtml = '-';
+
+                if(state.user.role === 'student') {
+                    const sub = ass.submissions.find(s => String(s.studentEmail).toLowerCase() === state.user.email.toLowerCase());
+                    if(sub) {
+                        if (sub.marks !== undefined && sub.marks !== null && sub.marks !== "") {
+                            marksHtml = `<div class="text-[13px] font-black text-slate-800 code-font">${sub.marks} / ${ass.maxMarks} pts</div>`;
+                            if (sub.remarks) {
+                                remarksHtml = `<div class="text-[12px] text-slate-500 italic max-w-[1000px] truncate" title="${sub.remarks}">${sub.remarks}</div>`;
+                            }
+                        } else {
+                            marksHtml = `<div class="text-[12px] font-bold text-slate-400 italic">Pending Grade</div>`;
+                        }
+
+                        actionHtml = `
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="px-4 py-1.5 rounded-full text-[11px] font-bold bg-[#ecfdf5] text-[#10b981] border border-[#a7f3d0] shadow-sm">Submitted</span>
+                            </div>`;
+                    } else {
+                        actionHtml = `
+                            <label class="cursor-pointer bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 px-5 py-2.5 rounded-full text-[13px] font-bold shadow-sm inline-block whitespace-nowrap transition-colors" id="lbl-${ass.id}">
+                                <span id="lbl-text-${ass.id}">Submit PDF (1 Attempt)</span>
+                                <input type="file" id="file-${ass.id}" class="hidden" accept=".pdf" onchange="submitAssignment('${ass.title}', '${ass.id}')">
+                            </label>
+                        `;
+                    }
+                } else {
+                    let subListHtml = ass.submissions.length === 0 ? '<p class="text-xs text-slate-400 italic pl-4">No submissions yet.</p>' : '';
+                    ass.submissions.forEach(sub => {
+                        const isGraded = (sub.marks !== undefined && sub.marks !== null && sub.marks !== "");
+                        
+                        const gradeStatus = isGraded 
+                            ? `<span class="text-[#10b981] font-black text-[13px] bg-[#ecfdf5] px-3 py-1.5 rounded border border-[#a7f3d0] code-font tracking-wide">${sub.marks} / ${ass.maxMarks} pts</span>` 
+                            : `<button onclick="openGradeModal('${ass.title}', '${sub.studentEmail}')" class="text-xs btn-secondary px-4 py-1.5 rounded-lg border border-[#bbdefb]">Grade</button>`;
+                        
+                        subListHtml += `
+                            <div class="flex items-center justify-between text-[13px] py-3 border-b border-slate-100 last:border-0 pl-4 pr-2 hover:bg-slate-50 transition-colors">
+                                <span class="text-slate-700 font-medium">${sub.studentEmail}</span>
+                                <div class="flex items-center gap-6">
+                                    <a href="${sub.filename}" target="_blank" class="text-[#02569B] hover:underline font-bold flex items-center gap-1.5 transition-colors" title="Download ${sub.filename}"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> PDF</a>
+                                    ${gradeStatus}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    detailsHtml = `<div class="mt-4 pt-4 border-t border-slate-100 w-full max-w-3xl"><h5 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 pl-4">Submissions (${ass.submissions.length})</h5>${subListHtml}</div>`;
+                    actionHtml = `<span class="text-xs text-slate-500 font-medium whitespace-nowrap">${ass.submissions.length} Submissions</span>`;
+                }
+
+                html += `
+                    <tr class="hover:bg-slate-50/50 transition-colors align-top">
+                        <td class="px-6 py-5">
+                            <h3 class="text-[15px] font-bold text-slate-800 mb-1.5">${ass.title}</h3>
+                            <a href="${ass.filename}" target="_blank" class="text-[12px] font-medium text-[#02569B] hover:underline flex items-center gap-1.5 w-fit transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Assignment Resource
+                            </a>
+                            ${detailsHtml}
+                        </td>
+                        <td class="px-6 py-5 pt-6"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${catClass}">${ass.category}</span></td>
+                        <td class="px-6 py-5 pt-6 code-font text-slate-500 text-[13px]">${marksHtml}</td>
+                        <td class="px-6 py-5 pt-6 text-slate-500 text-[13px]">${remarksHtml}</td>
+                        <td class="px-6 py-5 pt-5 text-right flex flex-col items-end justify-start min-h-full">${actionHtml}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div></div>`; container.innerHTML = html;
+        }
+
+        window.submitAssignment = async function(title, assId) {
+            const inputEl = document.getElementById(`file-${assId}`);
+            if(!inputEl || inputEl.files.length === 0) return;
+            
+            const file = inputEl.files[0];
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert("File is too large! Maximum allowed size is 10MB. Please compress your PDF.");
+                inputEl.value = "";
+                return;
+            }
+
+            const label = document.getElementById(`lbl-${assId}`);
+            const spanText = document.getElementById(`lbl-text-${assId}`);
+            const originalText = spanText.innerHTML;
+            
+            inputEl.disabled = true;
+            label.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            showBuffering("Encoding Submission...");
+
+            try {
+                const base64Data = await getBase64(file);
+                showBuffering("Uploading Solution to Cloud...");
+                
+                await apiRequest('/api/lms', { 
+                    action: 'submitLMSAssignment', 
+                    title: title, 
+                    email: state.user.email, 
+                    filename: file.name,
+                    fileBase64: base64Data
+                });
+                
+                await fetchLMSData(true); 
+                hideBuffering();
+                alert(`Solution "${file.name}" uploaded successfully!`);
+                
+            } catch (err) { 
+                console.error(err); 
+                hideBuffering();
+                spanText.innerHTML = originalText;
+                inputEl.disabled = false;
+                label.classList.remove('opacity-50', 'cursor-not-allowed');
+                inputEl.value = "";
+                alert(err.message || "Network error occurred during submission.");
+            }
+        };
+
+        window.openGradeModal = function(title, studentEmail) {
+            const ass = state.assignments.find(a => String(a.title) === String(title));
+            document.getElementById('grade-ass-id').value = title; 
+            document.getElementById('grade-student-email').value = studentEmail;
+            document.getElementById('grade-max').innerText = ass.maxMarks; 
+            document.getElementById('grade-student-display').innerText = studentEmail;
+            
+            const sub = ass.submissions.find(s => s.studentEmail === studentEmail);
+            document.getElementById('grade-download-link').href = sub ? sub.filename : "#";
+            
+            document.getElementById('grade-marks').max = ass.maxMarks; 
+            document.getElementById('grade-marks').value = ''; 
+            document.getElementById('grade-remarks').value = '';
+            toggleModal('grade-modal');
+        };
+
+        window.handleGradeSubmit = async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('grade-ass-id').value; 
+            const studentEmail = document.getElementById('grade-student-email').value;
+            const marks = document.getElementById('grade-marks').value; 
+            const remarks = document.getElementById('grade-remarks').value;
+            const btn = document.getElementById('btn-save-grade'); 
+            
+            showBuffering("Saving Grades to Database...");
+
+            try {
+                await apiRequest('/api/lms', { action: 'gradeLMSAssignment', title: title, email: studentEmail, marks: marks, remarks: remarks });
+                await fetchLMSData(true); 
+            } catch (err) { 
+                console.error(err); 
+                alert(err.message || "Error saving grade.");
+            } finally {
+                hideBuffering();
+            }
+            toggleModal('grade-modal'); btn.innerText = "Save Grade";
+        };
+
+        // --- CERTIFICATES LOGIC ---
+        async function handleIssueCertificate(e) {
+            e.preventDefault();
+            const email = document.getElementById('cert-email').value;
+            const title = document.getElementById('cert-title').value;
+            const fileInput = document.getElementById('cert-file');
+            const date = new Date().toLocaleDateString();
+            
+            if(fileInput.files.length === 0) { alert("Please attach a certificate PDF."); return; }
+            const file = fileInput.files[0];
+            
+            if (file.size > 10 * 1024 * 1024) {
+                alert("File is too large! Maximum allowed size is 10MB.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-cert');
+            
+            showBuffering("Encoding Certificate PDF...");
+            const fileBase64 = await getBase64(file);
+            
+            showBuffering("Issuing Certificate...");
+            try {
+                await apiRequest('/api/lms', { action: 'issueCertificate', email: email, title: title, date: date, fileBase64: fileBase64 });
+                await fetchLMSData(true); e.target.reset();
+            } catch (err) { 
+                console.error(err); 
+                alert(err.message || "Failed to issue certificate.");
+            } finally {
+                hideBuffering();
+            }
+            btn.innerText = "Issue Certificate";
+        }
+
+        function renderCertificates() {
+            const grid = document.getElementById('certificates-grid');
+            grid.innerHTML = '';
+            let toRender = state.certificates;
+
+            if (state.user.role === 'student') {
+                toRender = state.certificates.filter(c => String(c.studentEmail).toLowerCase() === state.user.email.toLowerCase());
+            }
+
+            if (toRender.length === 0) {
+                grid.innerHTML = `<div class="col-span-full p-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">No certificates available.</div>`;
+                return;
+            }
+
+            toRender.forEach(cert => {
+                const subtext = state.user.role === 'admin' ? cert.studentEmail : `Issued: ${cert.issueDate}`;
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:-translate-y-1 transition-transform">
+                        <div>
+                            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 mb-4 text-2xl">🏆</div>
+                            <h4 class="text-lg font-bold text-slate-800 mb-1 leading-tight">${cert.title}</h4>
+                            <p class="text-xs font-medium text-slate-500 mb-6">${subtext}</p>
+                        </div>
+                        <a href="${cert.url}" target="_blank" class="w-full text-center py-2.5 rounded-lg border border-[#02569B] text-[#02569B] text-sm font-bold hover:bg-blue-50 transition-colors">
+                            View Certificate
+                        </a>
+                    </div>
+                `;
             });
         }
+
     </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
