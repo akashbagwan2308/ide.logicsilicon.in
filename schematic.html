@@ -193,7 +193,7 @@
                 pin: '#f8fafc',         
                 selected: '#fde047',    
                 frameFill: 'rgba(15, 23, 42, 0.4)',
-                val1: '#10b981', // Emerald 500
+                val1: '#3b82f6', // Blue 500
                 val0: '#94a3b8', // Slate 400
                 valX: '#ef4444', // Red 500
                 valZ: '#eab308'  // Amber 500
@@ -211,7 +211,7 @@
                 pin: '#334155',
                 selected: '#eab308',    
                 frameFill: 'rgba(241, 245, 249, 0.6)',
-                val1: '#059669', // Emerald 600
+                val1: '#2563eb', // Blue 600
                 val0: '#475569', // Slate 600
                 valX: '#dc2626', // Red 600
                 valZ: '#d97706'  // Amber 600
@@ -1252,11 +1252,37 @@
                     ctx.lineTo(endX, endY);
                 }
                 
+                // --- WIRE COLOR CODING LOGIC ---
+                let wireBaseColor = colors.wire;
+                let simNode = getNodeValueFormatted(srcNode);
+                let checkIdx = edgeObj.srcPortIdx || 0;
+
+                // Fallback to target node if source mapping fails
+                if (!simNode || simNode.val === undefined) {
+                    simNode = getNodeValueFormatted(tgtNode);
+                    checkIdx = edgeObj.tgtPortIdx || 0;
+                }
+
+                if (simNode && simNode.val) {
+                    let valStr = simNode.val;
+                    let charIdx = valStr.length - 1 - checkIdx;
+                    let bitChar = valStr[charIdx] !== undefined ? valStr[charIdx] : valStr[0];
+
+                    if (bitChar === '1') {
+                        wireBaseColor = colors.val1; // Blue
+                    } else if (bitChar.toLowerCase() === 'x') {
+                        wireBaseColor = colors.valX; // Red
+                    } else if (bitChar.toLowerCase() === 'z') {
+                        wireBaseColor = colors.valZ; // Amber/Light Orange
+                    }
+                    // '0' uses default no color (colors.wire)
+                }
+
                 if (hoveredEdge === e || draggedEdge === e) {
                     ctx.strokeStyle = colors.wireHover; 
                     ctx.lineWidth = 3.5; 
                 } else {
-                    ctx.strokeStyle = colors.wire; 
+                    ctx.strokeStyle = wireBaseColor; 
                     ctx.lineWidth = 2.5; 
                 }
                 
