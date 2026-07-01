@@ -23,7 +23,7 @@
             display: flex; 
             flex-direction: column;
             overflow: hidden;
-            user-select: none; /* Prevent text selection while dragging */
+            user-select: none;
         }
         .code-font { font-family: 'Fira Code', monospace; }
         
@@ -33,7 +33,6 @@
             overflow: hidden;
         }
         
-        /* Left Sidebar */
         #signal-list {
             width: 340px;
             display: flex;
@@ -83,22 +82,16 @@
             cursor: grab;
         }
         
-        /* Zebra Striping for Sidebar */
         .signal-item:nth-child(even) { background-color: rgba(0, 0, 0, 0.02); }
         .dark .signal-item:nth-child(even) { background-color: rgba(255, 255, 255, 0.015); }
-        
         .dark .signal-item { border-bottom: 1px solid #1e293b; }
-        
         .signal-item:hover { background-color: rgba(0, 0, 0, 0.05) !important; }
         .dark .signal-item:hover { background-color: #1e293b !important; }
-        
         .signal-item:active { cursor: grabbing; }
-        
         .signal-item.drag-over { border-top: 2px solid #4f46e5; background-color: rgba(79, 70, 229, 0.05) !important; }
         .dark .signal-item.drag-over { border-top: 2px solid #6366f1; background-color: rgba(99, 102, 241, 0.1) !important; }
         .signal-item.dragging { opacity: 0.4; }
 
-        /* Sidebar Resizer */
         #sidebar-resizer {
             width: 4px;
             cursor: col-resize;
@@ -135,14 +128,12 @@
             border: 1px solid transparent;
         }
         
-        /* Light Mode Values (High Contrast) */
         .val-1 { color: #059669; border-color: #10b981; background: rgba(16, 185, 129, 0.15); }
         .val-0 { color: #475569; border-color: #cbd5e1; background: #ffffff; }
         .val-x { color: #dc2626; border-color: #f87171; background: rgba(239, 68, 68, 0.15); }
         .val-z { color: #d97706; border-color: #facc15; background: rgba(234, 179, 8, 0.15); }
         .val-bus { color: #2563eb; border-color: #60a5fa; background: rgba(59, 130, 246, 0.15); }
 
-        /* Dark Mode Values Overrides */
         .dark .val-1 { color: #10b981; border-color: #059669; background: rgba(16, 185, 129, 0.1); }
         .dark .val-0 { color: #94a3b8; border-color: #334155; background: #020617; }
         .dark .val-x { color: #ef4444; border-color: #dc2626; background: rgba(239, 68, 68, 0.1); }
@@ -171,7 +162,6 @@
             opacity: 1;
         }
 
-        /* Right Canvas Area */
         #canvas-wrapper {
             flex: 1;
             overflow: auto;
@@ -182,7 +172,6 @@
         }
         .dark #canvas-wrapper { background-color: #020617; }
 
-        /* Canvas Layering */
         #timeline-canvas {
             position: sticky;
             top: 0;
@@ -208,13 +197,11 @@
             pointer-events: none;
         }
         
-        /* Custom Scrollbar - Light */
         ::-webkit-scrollbar { height: 14px; width: 14px; }
         ::-webkit-scrollbar-track { background: #f8fafc; border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0;}
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 7px; border: 3px solid #f8fafc; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Custom Scrollbar - Dark */
         .dark ::-webkit-scrollbar-track { background: #020617; border-left: 1px solid #1e293b; border-top: 1px solid #1e293b;}
         .dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 7px; border: 3px solid #020617; }
         .dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
@@ -222,7 +209,6 @@
 </head>
 <body class="bg-white text-slate-800 dark:bg-[#020617] dark:text-slate-100 transition-colors duration-200" onclick="hideAddSignalMenu()">
 
-    <!-- Header Toolbar -->
     <header class="h-16 bg-white dark:bg-[#0f172a] flex items-center justify-between px-6 shrink-0 shadow-sm dark:shadow-md border-b border-slate-200 dark:border-transparent z-30 transition-colors">
         <div class="flex items-center gap-4">
             <div class="w-9 h-9 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-[0_0_15px_rgba(79,70,229,0.3)] dark:shadow-[0_0_15px_rgba(79,70,229,0.5)]">LS</div>
@@ -241,7 +227,6 @@
         </div>
         
         <div class="flex items-center gap-2">
-            <!-- Global Radix Selector -->
             <div class="bg-slate-50 dark:bg-[#1e293b] p-1 rounded-lg border border-slate-200 dark:border-[#334155] flex items-center mr-1 transition-colors h-[34px] shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase px-2 tracking-widest">Base</span>
                 <select id="global-radix" onchange="changeGlobalRadix(this.value)" class="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold rounded hover:border-indigo-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer py-1 px-2 appearance-none text-center shadow-sm transition-colors">
@@ -284,9 +269,7 @@
         <p class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">Please return to the LogicSilicon Simulator, ensure your testbench contains <code class="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded border border-indigo-100 dark:border-transparent">$dumpfile("dump.vcd"); $dumpvars;</code>, and click <strong>Run Code</strong> to generate a new waveform.</p>
     </div>
 
-    <!-- Main Viewer Area -->
     <div id="viewer-container" class="hidden">
-        <!-- Signal Names Sidebar -->
         <div id="signal-list">
             <div class="signal-header text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">
                 <div class="flex items-center gap-2">
@@ -295,20 +278,16 @@
                 </div>
                 <span>Cursor Val</span>
 
-                <!-- Floating Add Signal Menu -->
                 <div id="add-signal-menu" class="hidden absolute top-8 left-4 w-48 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-y-auto max-h-64 normal-case tracking-normal font-medium shadow-[0_10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.4)]">
-                    <!-- Populated by JS -->
-                </div>
+                    </div>
             </div>
             <div id="signal-list-scroll">
                 <div id="signal-names-container" class="py-2"></div>
             </div>
         </div>
 
-        <!-- Sidebar Resizer -->
         <div id="sidebar-resizer"></div>
 
-        <!-- Canvas Area -->
         <div id="canvas-wrapper">
             <canvas id="timeline-canvas" height="32"></canvas>
             <div id="wave-container">
@@ -321,9 +300,9 @@
     <script>
         // --- 1. STATE & THEME MANAGEMENT ---
         let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
-        let visibleSignals = []; // Holds the signals currently chosen to display
+        let visibleSignals = [];
         let scale = 10;
-        const paddingX = 20; // Padding from left edge to make time 0 visible
+        const paddingX = 20; 
         const rowHeight = 40;
         const waveHeight = 24;
         const paddingY = (rowHeight - waveHeight) / 2;
@@ -335,7 +314,16 @@
         let scrollLeft = 0;
         
         let isDarkMode = false;
-        let globalRadix = 'hex'; // Global Radix State
+        let globalRadix = 'hex'; 
+
+        // Canvas context setup
+        const waveCanvas = document.getElementById('wave-canvas');
+        const cursorCanvas = document.getElementById('cursor-canvas');
+        const timeCanvas = document.getElementById('timeline-canvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const cursorCtx = cursorCanvas.getContext('2d');
+        const timeCtx = timeCanvas.getContext('2d');
+        const wrapper = document.getElementById('canvas-wrapper');
 
         function initTheme() {
             const savedTheme = localStorage.getItem('ls_theme');
@@ -360,7 +348,7 @@
                 localStorage.setItem('ls_theme', 'light');
             }
             updateThemeIcons();
-            draw(); // Redraw canvas with new colors
+            draw(); 
         }
         
         function updateThemeIcons() {
@@ -373,51 +361,24 @@
             }
         }
 
-        // Returns dynamic color palette for canvas based on active theme
         function getColors() {
             if (isDarkMode) {
                 return {
-                    timelineBg: '#0f172a',
-                    timelineText: '#94a3b8',
-                    timelineTick: '#334155',
-                    gridLines: 'rgba(255, 255, 255, 0.05)',
-                    rowAltBg: 'rgba(255, 255, 255, 0.015)',
-                    cursorLine: 'rgba(255, 255, 255, 0.4)',
-                    val1: '#22c55e',
-                    val1Fill: 'rgba(34, 197, 94, 0.12)',
-                    val0: '#22c55e',
-                    valX: '#ef4444',
-                    valXFill: 'rgba(239, 68, 68, 0.15)',
-                    valZ: '#eab308',
-                    valBus: '#3b82f6',
-                    busTextVal: '#cbd5e1',
-                    busTextX: '#ef4444',
-                    anchor: '#eab308',
-                    deltaLine: 'rgba(99, 102, 241, 0.9)',
-                    deltaBg: '#4f46e5',
-                    deltaText: '#fff'
+                    timelineBg: '#0f172a', timelineText: '#94a3b8', timelineTick: '#334155',
+                    gridLines: 'rgba(255, 255, 255, 0.05)', rowAltBg: 'rgba(255, 255, 255, 0.015)', cursorLine: 'rgba(255, 255, 255, 0.4)',
+                    val1: '#22c55e', val1Fill: 'rgba(34, 197, 94, 0.12)', val0: '#22c55e',
+                    valX: '#ef4444', valXFill: 'rgba(239, 68, 68, 0.15)', valZ: '#eab308',
+                    valBus: '#3b82f6', busTextVal: '#cbd5e1', busTextX: '#ef4444', anchor: '#eab308',
+                    deltaLine: 'rgba(99, 102, 241, 0.9)', deltaBg: '#4f46e5', deltaText: '#fff'
                 };
             } else {
                 return {
-                    timelineBg: '#f1f5f9',
-                    timelineText: '#64748b',
-                    timelineTick: '#cbd5e1',
-                    gridLines: 'rgba(0, 0, 0, 0.08)',
-                    rowAltBg: 'rgba(0, 0, 0, 0.03)',
-                    cursorLine: 'rgba(0, 0, 0, 0.4)',
-                    val1: '#059669',
-                    val1Fill: 'rgba(16, 185, 129, 0.15)',
-                    val0: '#059669',
-                    valX: '#dc2626',
-                    valXFill: 'rgba(220, 38, 38, 0.1)',
-                    valZ: '#d97706',
-                    valBus: '#2563eb',
-                    busTextVal: '#1e293b',
-                    busTextX: '#dc2626',
-                    anchor: '#d97706',
-                    deltaLine: 'rgba(79, 70, 229, 0.7)',
-                    deltaBg: '#e0e7ff',
-                    deltaText: '#4f46e5'
+                    timelineBg: '#f1f5f9', timelineText: '#64748b', timelineTick: '#cbd5e1',
+                    gridLines: 'rgba(0, 0, 0, 0.08)', rowAltBg: 'rgba(0, 0, 0, 0.03)', cursorLine: 'rgba(0, 0, 0, 0.4)',
+                    val1: '#059669', val1Fill: 'rgba(16, 185, 129, 0.15)', val0: '#059669',
+                    valX: '#dc2626', valXFill: 'rgba(220, 38, 38, 0.1)', valZ: '#d97706',
+                    valBus: '#2563eb', busTextVal: '#1e293b', busTextX: '#dc2626', anchor: '#d97706',
+                    deltaLine: 'rgba(79, 70, 229, 0.7)', deltaBg: '#e0e7ff', deltaText: '#4f46e5'
                 };
             }
         }
@@ -425,19 +386,32 @@
         window.onload = () => {
             initTheme();
             const vcdString = sessionStorage.getItem('ls_last_vcd');
+            
             if (!vcdString) {
                 document.getElementById('error-msg').classList.remove('hidden');
             } else {
                 document.getElementById('viewer-container').classList.remove('hidden');
                 parseVCD(vcdString);
                 
-                // Initialize visibility to all parsed signals
                 visibleSignals = [...parsedData.signals];
-
                 document.getElementById('timescale-display').innerText = `Timescale: ${parsedData.timescale}`;
+
+                // --- CRITICAL FIX: Calculate scale BEFORE first render ---
+                let startingWidth = wrapper.clientWidth;
+                // Fallback in case DOM hasn't fully painted the width yet
+                if (startingWidth === 0) startingWidth = window.innerWidth - 340; 
+                
+                scale = (startingWidth - 50 - paddingX) / Math.max(1, parsedData.maxTime);
+                if (scale > 50) scale = 50;
+                // ---------------------------------------------------------
+
                 initRenderer();
                 setupSidebarResizer();
-                fitToScreen();
+                
+                // Double check layout after rendering is fully complete
+                requestAnimationFrame(() => {
+                    fitToScreen();
+                });
             }
         };
 
@@ -505,7 +479,7 @@
                 }
             });
 
-            parsedData.maxTime = currentTime > 0 ? currentTime + 10 : 100;
+            parsedData.maxTime = currentTime > 0 ? currentTime + Math.max(10, currentTime * 0.05) : 100;
             parsedData.timescale = timescale;
         }
 
@@ -545,19 +519,12 @@
                     timescaleUnit = match[2];
                 }
             }
-            return `${deltaTicks * timescaleValue} ${timescaleUnit}`;
+            const val = parseFloat((deltaTicks * timescaleValue).toPrecision(10));
+            return `${val} ${timescaleUnit}`;
         }
 
 
         // --- 4. SIDEBAR & INTERACTIVITY ---
-        const waveCanvas = document.getElementById('wave-canvas');
-        const cursorCanvas = document.getElementById('cursor-canvas');
-        const timeCanvas = document.getElementById('timeline-canvas');
-        const waveCtx = waveCanvas.getContext('2d');
-        const cursorCtx = cursorCanvas.getContext('2d');
-        const timeCtx = timeCanvas.getContext('2d');
-        const wrapper = document.getElementById('canvas-wrapper');
-
         function initRenderer() {
             const namesContainer = document.getElementById('signal-names-container');
             namesContainer.innerHTML = '';
@@ -609,6 +576,8 @@
 
             setupCanvasInteractions();
             window.addEventListener('resize', draw);
+            
+            // First render execution
             draw();
         }
 
@@ -658,46 +627,38 @@
             draw();
         }
 
-function formatDisplayValue(val, size) {
-    if (val.toLowerCase().includes('x')) return 'X';
-    if (val.toLowerCase().includes('z')) return 'Z';
-    if (size === 1) return val;
-    
-    if (/^[01]+$/.test(val)) {
-        // 1. Reconstruct the full bit-width by padding missing leading zeros
-        let paddedVal = val.padStart(size, '0');
+        function formatDisplayValue(val, size) {
+            if (val.toLowerCase().includes('x')) return 'X';
+            if (val.toLowerCase().includes('z')) return 'Z';
+            if (size === 1) return val;
+            
+            if (/^[01]+$/.test(val)) {
+                let paddedVal = val.padStart(size, '0');
 
-        if (globalRadix === 'hex') {
-            // Pad hex characters (4 bits per hex character)
-            let hexChars = Math.ceil(size / 4);
-            return 'h' + parseInt(paddedVal, 2).toString(16).toUpperCase().padStart(hexChars, '0');
-        }
-        
-        if (globalRadix === 'udec') {
-            return parseInt(paddedVal, 2).toString(10);
-        }
-        
-        if (globalRadix === 'sdec') {
-            let num = parseInt(paddedVal, 2);
-            // 2. Evaluate the MSB of the *padded* value for Two's Complement
-            if (paddedVal[0] === '1') {
-                num = num - Math.pow(2, size);
+                if (globalRadix === 'hex') {
+                    let hexChars = Math.ceil(size / 4);
+                    return 'h' + parseInt(paddedVal, 2).toString(16).toUpperCase().padStart(hexChars, '0');
+                }
+                if (globalRadix === 'udec') {
+                    return parseInt(paddedVal, 2).toString(10);
+                }
+                if (globalRadix === 'sdec') {
+                    let num = parseInt(paddedVal, 2);
+                    if (paddedVal[0] === '1') {
+                        num = num - Math.pow(2, size);
+                    }
+                    return num.toString(10);
+                }
+                if (globalRadix === 'bin') {
+                    return 'b' + paddedVal;
+                }
+                if (globalRadix === 'oct') {
+                    let octChars = Math.ceil(size / 3);
+                    return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
+                }
             }
-            return num.toString(10);
+            return val;
         }
-        
-        if (globalRadix === 'bin') {
-            return 'b' + paddedVal;
-        }
-        
-        if (globalRadix === 'oct') {
-            // Pad octal characters (3 bits per octal character)
-            let octChars = Math.ceil(size / 3);
-            return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
-        }
-    }
-    return val;
-}
 
         function getValueClass(val, size) {
             if (val.toLowerCase().includes('x')) return 'val-x';
@@ -814,15 +775,31 @@ function formatDisplayValue(val, size) {
         // --- 6. RENDER ENGINE ---
         function zoom(factor) {
             scale *= factor;
-            if (scale < 0.1) scale = 0.1;
+            if (scale < 0.000001) scale = 0.000001; 
             if (scale > 500) scale = 500;
             draw();
         }
 
         function fitToScreen() {
             const containerWidth = wrapper.clientWidth;
-            scale = Math.max(1, (containerWidth - 50 - paddingX) / parsedData.maxTime);
+            if (containerWidth > 0) {
+                scale = (containerWidth - 50 - paddingX) / Math.max(1, parsedData.maxTime);
+                if (scale > 50) scale = 50;
+            }
             draw();
+        }
+        
+        function getDynamicTickInterval(currentScale) {
+            const targetTimePerTick = 100 / currentScale;
+            if (targetTimePerTick <= 1) return 1;
+            
+            const mag = Math.pow(10, Math.floor(Math.log10(targetTimePerTick)));
+            const normalized = targetTimePerTick / mag;
+            
+            if (normalized < 1.5) return mag;
+            if (normalized < 3.5) return 2 * mag;
+            if (normalized < 7.5) return 5 * mag;
+            return 10 * mag;
         }
 
         function draw() {
@@ -852,11 +829,7 @@ function formatDisplayValue(val, size) {
             timeCtx.textAlign = 'center';
             timeCtx.textBaseline = 'top';
 
-            let tickInterval = 10;
-            if (scale < 1) tickInterval = 100;
-            if (scale < 0.1) tickInterval = 1000;
-            if (scale > 20) tickInterval = 2;
-            if (scale > 50) tickInterval = 1;
+            let tickInterval = getDynamicTickInterval(scale);
 
             for (let t = 0; t <= parsedData.maxTime; t += tickInterval) {
                 const x = paddingX + t * scale;
@@ -946,11 +919,7 @@ function formatDisplayValue(val, size) {
             waveCtx.lineTo(width, visibleSignals.length * rowHeight);
             waveCtx.stroke();
 
-            let tickInterval = 10;
-            if (scale < 1) tickInterval = 100;
-            if (scale < 0.1) tickInterval = 1000;
-            if (scale > 20) tickInterval = 2;
-            if (scale > 50) tickInterval = 1;
+            let tickInterval = getDynamicTickInterval(scale);
 
             waveCtx.strokeStyle = theme.gridLines;
             for (let t = 0; t <= parsedData.maxTime; t += tickInterval) {
