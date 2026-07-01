@@ -616,17 +616,25 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
             const errorDiv = document.getElementById('login-error');
             const errorText = document.getElementById('login-error-text');
             
+            // Set loading state
             btn.innerHTML = '<div class="loader mr-2 border-white/30 border-t-white"></div> Verifying...';
             btn.disabled = true;
             errorDiv.classList.add('hidden');
 
             try {
-                // Fetching from the Secure Node Backend, NOT Google Apps Script directly
                 let res = await fetch(AUTH_API_URL, {
                     method: 'POST', 
                     headers: {'Content-Type': 'application/json'}, 
                     body: JSON.stringify({ email, authString })
                 });
+                
+                // NEW: Explicitly catch HTTP error statuses (like 401 Unauthorized) 
+                // before trying to parse the JSON payload.
+                if (!res.ok) {
+                    errorText.innerText = "Invalid credentials. Please verify your access.";
+                    errorDiv.classList.remove('hidden');
+                    return; // Exit the function early
+                }
                 
                 let data = await res.json();
                 
@@ -637,7 +645,7 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
                     currentUser = data.user || { email: email, role: 'student' };
                     sessionStorage.setItem('ls_playground_user', JSON.stringify(currentUser));
 
-                    // --- NEW: RESET GITHUB SYNC ON FRESH LOGIN ---
+                    // RESET GITHUB SYNC ON FRESH LOGIN 
                     sessionStorage.removeItem('ls_gh_owner');
                     sessionStorage.removeItem('ls_gh_repo');
                     sessionStorage.removeItem('ls_gh_pat');
@@ -650,17 +658,20 @@ let currentGitPat = sessionStorage.getItem('ls_gh_pat') || null;
                     if (gitBtn) {
                         gitBtn.innerText = "Connect Repo";
                     }
-                    // ---------------------------------------------
 
                     showSimulator();
                 } else {
-                    errorText.innerText = data.message || "Invalid credentials. Please verify your access.";
+                    // Fallback just in case the server returns HTTP 200 OK 
+                    // but the payload indicates a failure.
+                    errorText.innerText = data.message || "Invalid credentials.";
                     errorDiv.classList.remove('hidden');
                 }
             } catch(err) {
+                // Now this ONLY triggers if the server is completely unreachable (e.g., offline)
                 errorText.innerText = "Network error. Unable to reach backend authentication server.";
                 errorDiv.classList.remove('hidden');
             } finally {
+                // Reset button state regardless of outcome
                 btn.innerHTML = 'Secure Login';
                 btn.disabled = false;
             }
