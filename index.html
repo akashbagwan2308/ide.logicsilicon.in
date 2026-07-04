@@ -83,7 +83,7 @@
         }
     </style>
 </head>
-<body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200">
+<body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200" onclick="closeSettingsMenu()">
 
     <div id="login-view" class="view active h-full w-full relative overflow-y-auto overflow-x-hidden bg-[#090E17]">
         
@@ -92,7 +92,7 @@
         <div class="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none animate-pulse" style="animation-duration: 8s;"></div>
         <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-        <button onclick="toggleTheme()" class="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/5 backdrop-blur-md transition-all shadow-lg z-50" title="Toggle Theme">
+        <button onclick="toggleTheme(); event.stopPropagation();" class="absolute top-6 right-6 lg:top-8 lg:right-8 p-3 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/5 backdrop-blur-md transition-all shadow-lg z-50" title="Toggle Theme">
             <svg id="icon-sun-login" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
             <svg id="icon-moon-login" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
         </button>
@@ -120,9 +120,9 @@
                                 <div class="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
                                 <div class="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
                             </div>
-                            <span id="hero-filename" class="text-[#858585] text-xs code-font">design.sv</span>
+                            <span id="hero-filename" class="text-[#858585] text-xs code-font fade-transition">design.sv</span>
                         </div>
-                        <div id="hero-code" class="p-5 code-font text-[13px] leading-[1.6] text-[#d4d4d4] overflow-hidden h-[210px]">
+                        <div id="hero-code" class="p-5 code-font text-[13px] leading-[1.6] text-[#d4d4d4] overflow-hidden h-[210px] fade-transition">
                             <span style="color:#569cd6">module</span> top_module(<br/>
                             &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> clk,<br/>
                             &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">input logic</span> reset,<br/>
@@ -199,42 +199,51 @@
                 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
                 
                 <div class="flex items-center gap-2 relative">
+                    
+                    <button id="btn-open-folder" onclick="toggleProjectFolder()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Open Local Folder">
+                        <span class="text-sky-500 text-lg leading-none">📂</span>
+                        <span class="hidden sm:inline" id="btn-folder-text">Open Folder</span>
+                    </button>
+
                     <button onclick="triggerUpload()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Upload Code">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                         <span class="hidden sm:inline">Upload</span>
                     </button>
                     <input type="file" id="file-upload" accept=".v,.sv,.txt" class="hidden" onchange="handleFileUpload(event)">
 
-                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Download Code">
+                    <button onclick="downloadCode()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Save/Sync Code">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span class="hidden sm:inline">Save</span>
+                        <span class="hidden sm:inline" id="btn-save-text">Save</span>
                     </button>
 
-                    
+                    <!-- DIVIDER -->
+                    <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden md:block mx-1"></div>
+
 
                     <button id="btn-save-git" onclick="saveToGitHub()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-[13px] font-medium transition-colors border border-slate-700 ml-1" title="Push to GitHub">
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.376.202 2.394.1 2.646.64.699 1.026 1.591 1.026 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"></path></svg>
                         <span class="hidden sm:inline">Push to Git</span>
                     </button>
 
-<div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden md:block mx-1"></div>
+                    <!-- AUTO-SAVE TIMESTAMP -->
+                    <div id="last-save-time" class="hidden md:flex items-center  gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-tighter" title="Code is auto-saved locally">
+                        <!-- Filled via JS -->
+                    </div>
 
-                    <div id="last-save-time" class="hidden md:flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-tighter" title="Code is auto-saved locally">
-                        </div>
                 </div>
             </div>
 
             <div class="flex items-center gap-4 sm:gap-5">
                 <div class="hidden md:flex items-center gap-2 bg-slate-50 dark:bg-[#1e1e1e] border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-full transition-colors">
-                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                    <div id="nav-status-dot" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
                     <span class="text-[11px] text-slate-600 dark:text-slate-400 font-medium transition-colors tracking-wide" id="nav-user-email">user@domain.com</span>
                 </div>
 
-                <button onclick="toggleFullScreen()" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Fullscreen (Alt+F)">
+                <button onclick="toggleFullScreen(); event.stopPropagation();" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Fullscreen (Alt+F)">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
                 </button>
 
-                <button onclick="toggleTheme()" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Theme">
+                <button onclick="toggleTheme(); event.stopPropagation();" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors" title="Toggle Theme">
                     <svg id="icon-sun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <svg id="icon-moon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
                 </button>
@@ -275,16 +284,16 @@
                     </div>
                 </div>
 
-                <button onclick="openRTLViewer()" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Shift+Enter">
+                <button onclick="openRTLViewer(); event.stopPropagation();" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Shift+Enter">
                     👁️ RTL Schematic
                 </button>
                 
-                <button onclick="runSimulation()" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Enter">
+                <button onclick="runSimulation(); event.stopPropagation();" id="btn-run" class="flex items-center gap-2 px-5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Enter">
                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
                     Run Code
                 </button>
                 
-                <button onclick="stopSimulation()" id="btn-stop" class="hidden items-center gap-2 px-5 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(239,68,68,0.3)] transition-all transform hover:-translate-y-[1px]">
+                <button onclick="stopSimulation(); event.stopPropagation();" id="btn-stop" class="hidden items-center gap-2 px-5 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(239,68,68,0.3)] transition-all transform hover:-translate-y-[1px]">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                     Stop
                 </button>
@@ -295,7 +304,7 @@
             </div>
         </nav>
 
-        <div class="flex-1 flex flex-col overflow-hidden min-h-0" onclick="closeSettingsMenu()">
+        <div class="flex-1 flex flex-col overflow-hidden min-h-0">
             <div id="top-section" class="flex-1 flex flex-row min-h-0 bg-white dark:bg-dark-editor transition-colors relative">
                 
                 <div id="design-pane" class="flex flex-col h-full min-w-0" style="width: 50%;">
@@ -382,7 +391,6 @@ Write your design and testbench, then click 'Run Code'.</span>
         const VERILOG_API_URL = "https://ide-backend-i1s5.onrender.com/run"; 
         const GIT_API_URL = "https://ide-backend-i1s5.onrender.com/save-github"; 
 
-        // --- LOCAL DRAFT KEYS ---
         const LS_DESIGN_DRAFT = 'ls_draft_design';
         const LS_TB_DRAFT = 'ls_draft_tb';
 
@@ -396,7 +404,9 @@ Write your design and testbench, then click 'Run Code'.</span>
         let isDarkMode = false;
         let abortController = null; 
         
-        // --- Multi-File State ---
+        // Native System API Directory Tracker
+        let currentDirHandle = null;
+
         let designFiles = [{ name: "design.sv", content: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule" }];
         let tbFiles = [{ name: "testbench.sv", content: "`timescale 1ns/1ns \n  module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
         
@@ -404,12 +414,8 @@ Write your design and testbench, then click 'Run Code'.</span>
         let activeTbIdx = 0;
         let maximizedPane = null; 
 
-        // --- Editor Settings State ---
-        let editorSettings = {
-            wrap: false,
-            minimap: false,
-            fontSize: 14
-        };
+        let editorSettings = { wrap: false, minimap: false, fontSize: 14 };
+        let currentHeroSlide = 0;
 
         const heroSlides = [
             {
@@ -432,7 +438,97 @@ Write your design and testbench, then click 'Run Code'.</span>
             }
         ];
 
-        let currentHeroSlide = 0;
+        // =========================================================
+        // NATIVE PROJECT MANAGER (FILE SYSTEM API)
+        // =========================================================
+        
+        async function toggleProjectFolder() {
+            if (currentDirHandle) {
+                if (confirm("Disconnect current local folder? Your files will remain in the browser but won't auto-sync to the disk.")) {
+                    currentDirHandle = null;
+                    document.getElementById('btn-save-text').innerText = "Save";
+                    document.getElementById('btn-folder-text').innerText = "Open Folder";
+                    document.getElementById('btn-open-folder').title = "Open Local Folder";
+                    
+                    // Remove handles so it doesn't try to sync to disconnected files
+                    designFiles.forEach(f => delete f.handle);
+                    tbFiles.forEach(f => delete f.handle);
+                    
+                    alert("Folder disconnected.");
+                }
+                return;
+            }
+
+            try {
+                if (!('showDirectoryPicker' in window)) {
+                    alert("Your browser does not support local folder access. Please use Google Chrome or Microsoft Edge.");
+                    return;
+                }
+                
+                const directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                currentDirHandle = directoryHandle; // Keep active handle in memory for syncing
+                
+                let tempDesign = [];
+                let tempTb = [];
+                
+                for await (const entry of directoryHandle.values()) {
+                    if (entry.kind === 'file' && (entry.name.endsWith('.sv') || entry.name.endsWith('.v') || entry.name.endsWith('.txt'))) {
+                        const file = await entry.getFile();
+                        const content = await file.text();
+                        
+                        if (entry.name.toLowerCase().includes('tb') || entry.name.toLowerCase().includes('test')) {
+                            tempTb.push({ name: entry.name, content: content, handle: entry });
+                        } else {
+                            tempDesign.push({ name: entry.name, content: content, handle: entry });
+                        }
+                    }
+                }
+                
+                if (tempDesign.length === 0) tempDesign.push({ name: "design.sv", content: "// New Design\n" });
+                if (tempTb.length === 0) tempTb.push({ name: "testbench.sv", content: "// New Testbench\n" });
+
+                designFiles = tempDesign;
+                tbFiles = tempTb;
+                
+                activeDesignIdx = 0;
+                activeTbIdx = 0;
+                if(editorDesign && designFiles.length > 0) editorDesign.setValue(designFiles[0].content);
+                if(editorTb && tbFiles.length > 0) editorTb.setValue(tbFiles[0].content);
+                
+                renderTabs('design');
+                renderTabs('tb');
+                
+                document.getElementById('btn-save-text').innerText = "Sync"; // Change button name dynamically
+                document.getElementById('btn-folder-text').innerText = "Close Folder";
+                document.getElementById('btn-open-folder').title = "Disconnect Local Folder";
+                
+                saveDraftsLocally();
+                alert("Folder loaded successfully! Changes will now automatically sync directly to this folder.");
+            } catch (err) {
+                console.log("Open Project cancelled or failed:", err);
+            }
+        }
+
+        async function syncToLocalFolder() {
+            if (!currentDirHandle) return;
+            try {
+                const allFiles = [...designFiles, ...tbFiles];
+                for (const f of allFiles) {
+                    let handle = f.handle;
+                    if (!handle) {
+                        // Create handle if it's a newly added file during this session
+                        handle = await currentDirHandle.getFileHandle(f.name, { create: true });
+                        f.handle = handle;
+                    }
+                    const writable = await handle.createWritable();
+                    await writable.write(f.content);
+                    await writable.close();
+                }
+            } catch (err) {
+                console.error("Failed to sync some files to local folder:", err);
+            }
+        }
+
 
         // =========================================================
         // FULLSCREEN LOGIC
@@ -443,23 +539,39 @@ Write your design and testbench, then click 'Run Code'.</span>
                     console.log(`Error attempting to enable fullscreen: ${err.message}`);
                 });
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                if (document.exitFullscreen) { document.exitFullscreen(); }
             }
         }
 
         // =========================================================
-        // LOCAL AUTOSAVE DRAFT LOGIC
+        // UI MENU HANDLERS
         // =========================================================
-        function saveDraftsLocally() {
+        window.toggleSettings = function(e) {
+            e.stopPropagation();
+            document.getElementById('settings-menu').classList.toggle('hidden');
+        };
+
+        window.closeSettingsMenu = function() {
+            const smenu = document.getElementById('settings-menu');
+            if(smenu && !smenu.classList.contains('hidden')) smenu.classList.add('hidden');
+        };
+
+        // =========================================================
+        // LOCAL DRAFT SAVING
+        // =========================================================
+        async function saveDraftsLocally() {
             if (editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
             if (editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
 
-            localStorage.setItem(LS_DESIGN_DRAFT, JSON.stringify(designFiles));
-            localStorage.setItem(LS_TB_DRAFT, JSON.stringify(tbFiles));
+            // Store cleanly in localStorage by explicitly mapping to avoid stringifying the un-serializable FileSystemHandle 
+            localStorage.setItem(LS_DESIGN_DRAFT, JSON.stringify(designFiles.map(f => ({name: f.name, content: f.content}))));
+            localStorage.setItem(LS_TB_DRAFT, JSON.stringify(tbFiles.map(f => ({name: f.name, content: f.content}))));
 
-            // Update UI Timestamp
+            // Execute auto-sync if we have a bound directory
+            if (currentDirHandle) {
+                syncToLocalFolder().catch(err => console.error("Auto-sync failed:", err));
+            }
+
             const timeElement = document.getElementById('last-save-time');
             if (timeElement) {
                 const now = new Date();
@@ -477,12 +589,11 @@ Write your design and testbench, then click 'Run Code'.</span>
                     designFiles = JSON.parse(savedDesign);
                     tbFiles = JSON.parse(savedTb);
 
-                    // Update UI Timestamp for restored state
                     const timeElement = document.getElementById('last-save-time');
                     if (timeElement) {
                         const now = new Date();
                         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        timeElement.innerHTML = `<span class="inline-block w-1.5 h-1.5 bg-sky-500 rounded-full mr-1.5"></span> Restored ${timeString}`;
+                        timeElement.innerHTML = `<span class="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span> Restored ${timeString}`;
                     }
 
                     return true;
@@ -536,14 +647,13 @@ Write your design and testbench, then click 'Run Code'.</span>
 
             setInterval(cycleHeroContent, 6000);
 
-            // 30-Second Auto-Save Loop (Local Only)
+            // 30-Second Auto-Save Loop
             setInterval(() => {
                 if (currentUser && document.getElementById('simulator-view').classList.contains('active')) {
                     saveDraftsLocally();
                 }
             }, 30000); 
 
-            // Load Theme
             const savedTheme = localStorage.getItem('ls_theme');
             if (savedTheme === 'dark') {
                 isDarkMode = true;
@@ -565,7 +675,6 @@ Write your design and testbench, then click 'Run Code'.</span>
                 }
             }
 
-            // Load Editor Settings
             const savedSettings = localStorage.getItem('ls_editor_settings');
             if(savedSettings) {
                 editorSettings = JSON.parse(savedSettings);
@@ -574,7 +683,6 @@ Write your design and testbench, then click 'Run Code'.</span>
                 document.getElementById('setting-fontsize').value = editorSettings.fontSize;
             }
 
-            // Check for active JWT token and Session
             const token = sessionStorage.getItem('ls_jwt_token');
             const session = sessionStorage.getItem('ls_playground_user');
             
@@ -594,42 +702,37 @@ Write your design and testbench, then click 'Run Code'.</span>
         // KEYBOARD SHORTCUTS
         // =========================================================
         document.addEventListener('keydown', (e) => {
-            // Only trigger if simulator view is active
             if (document.getElementById('simulator-view').classList.contains('active')) {
                 
-                // Save Locally: Ctrl + S OR Cmd + S
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-                    e.preventDefault(); // Stop browser from opening "Save As" dialog
+                    e.preventDefault(); 
                     saveDraftsLocally();
                     return;
                 }
 
-                // Fullscreen Toggle: Alt + F OR F11
                 if (e.key === 'F11' || (e.altKey && e.key.toLowerCase() === 'f')) {
                     e.preventDefault();
                     toggleFullScreen();
                     return;
                 }
 
-                // Ctrl + Enter OR Cmd + Enter
                 if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                     e.preventDefault(); 
                     if (e.shiftKey) {
-                        openRTLViewer(); // Ctrl + Shift + Enter
+                        openRTLViewer(); 
                     } else {
-                        runSimulation(); // Ctrl + Enter
+                        runSimulation(); 
                     }
                     return;
                 }
 
-// Increase/Decrease Font Size: Ctrl + Plus / Ctrl + Minus
                 if (e.ctrlKey || e.metaKey) {
                     if (e.key === '=' || e.key === '+') {
                         e.preventDefault();
                         let currentSize = parseInt(document.getElementById('setting-fontsize').value);
                         if (currentSize < 24) {
                             document.getElementById('setting-fontsize').value = currentSize + 1;
-                            updateEditorSettings(); // Triggers the clean, lag-free update
+                            updateEditorSettings();
                         }
                         return;
                     }
@@ -638,13 +741,11 @@ Write your design and testbench, then click 'Run Code'.</span>
                         let currentSize = parseInt(document.getElementById('setting-fontsize').value);
                         if (currentSize > 10) {
                             document.getElementById('setting-fontsize').value = currentSize - 1;
-                            updateEditorSettings(); // Triggers the clean, lag-free update
+                            updateEditorSettings(); 
                         }
                         return;
                     }
                 }
-
-
             }
         });
 
@@ -677,18 +778,6 @@ Write your design and testbench, then click 'Run Code'.</span>
             renderTabs('tb');
         }
 
-        window.toggleSettings = function(e) {
-            e.stopPropagation();
-            document.getElementById('settings-menu').classList.toggle('hidden');
-        };
-
-        window.closeSettingsMenu = function() {
-            const menu = document.getElementById('settings-menu');
-            if(menu && !menu.classList.contains('hidden')) {
-                menu.classList.add('hidden');
-            }
-        };
-
         window.updateEditorSettings = function() {
             editorSettings.wrap = document.getElementById('setting-wrap').checked;
             editorSettings.minimap = document.getElementById('setting-minimap').checked;
@@ -713,7 +802,6 @@ Write your design and testbench, then click 'Run Code'.</span>
             document.getElementById('simulator-view').classList.add('active');
             document.getElementById('nav-user-email').innerText = currentUser.email;
             
-            // Try to load any local drafts before starting Monaco
             loadDraftsLocally();
             
             setTimeout(initMonaco, 100);
@@ -872,27 +960,29 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         function logout() {
-            // Wipe standard sessions
             sessionStorage.removeItem('ls_jwt_token'); 
             sessionStorage.removeItem('ls_playground_user');
             sessionStorage.removeItem('ls_last_vcd');
             currentUser = null;
             
-            // Wipe Git Session
             sessionStorage.removeItem('ls_gh_owner');
             sessionStorage.removeItem('ls_gh_repo');
             sessionStorage.removeItem('ls_gh_pat');
             currentGitOwner = currentGitRepo = currentGitPat = null;
 
-            // Wipe Local Drafts
             localStorage.removeItem(LS_DESIGN_DRAFT);
             localStorage.removeItem(LS_TB_DRAFT);
+            currentDirHandle = null; 
+            document.getElementById('btn-save-text').innerText = "Save";
+            const fText = document.getElementById('btn-folder-text');
+            if(fText) {
+                fText.innerText = "Open Folder";
+                document.getElementById('btn-open-folder').title = "Open Local Folder";
+            }
 
-            // Reset UI Time Element
             const timeElement = document.getElementById('last-save-time');
             if(timeElement) timeElement.innerHTML = '';
 
-            // Reset memory to default starter code
             designFiles = [{ name: "design.sv", content: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule" }];
             tbFiles = [{ name: "testbench.sv", content: "`timescale 1ns/1ns \n  module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
             
@@ -943,9 +1033,19 @@ Write your design and testbench, then click 'Run Code'.</span>
             });
         }
 
-        window.deleteFile = function(paneType, idx, e) {
+        window.deleteFile = async function(paneType, idx, e) {
             e.stopPropagation();
-            if(!confirm("Delete file '" + (paneType === 'design' ? designFiles[idx].name : tbFiles[idx].name) + "'?")) return;
+            let filename = paneType === 'design' ? designFiles[idx].name : tbFiles[idx].name;
+            if(!confirm("Delete file '" + filename + "'?")) return;
+
+            // Delete physically from local folder if mapped
+            if (currentDirHandle) {
+                try {
+                    await currentDirHandle.removeEntry(filename);
+                } catch(err) {
+                    console.warn(`Could not delete ${filename} from local folder:`, err);
+                }
+            }
 
             if (paneType === 'design') {
                 if (activeDesignIdx !== idx && editorDesign) {
@@ -1021,10 +1121,9 @@ Write your design and testbench, then click 'Run Code'.</span>
             const maxIconDesign = document.getElementById('max-icon-design');
             const maxIconTb = document.getElementById('max-icon-tb');
             const expandSvg = "M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zm6 10h2v6h-6v-2h4v-4zM4 14h2v4h4v2H4v-6z";
-            const shrinkSvg = "M10 10H4V8h4V4h2v6zm4 0h6V8h-4V4h-2v6zm-4 4H4v2h4v4h2v-6zm4 0h6v2h-4v4h-2v-6z";
+            const shrinkSvg = "M10 10H4V8h4V4h2v6zm4 0h6V8h-4V4h-2v6zm-4 4H4v2h4v4h2v-6zm4 0h6v2h-4v4h2v-6z";
 
             if (maximizedPane === pane) {
-                // Restore
                 maximizedPane = null;
                 designPane.classList.remove('pane-maximized', 'pane-hidden');
                 tbPane.classList.remove('pane-maximized', 'pane-hidden');
@@ -1034,7 +1133,6 @@ Write your design and testbench, then click 'Run Code'.</span>
                 maxIconDesign.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${expandSvg}"></path>`;
                 maxIconTb.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${expandSvg}"></path>`;
             } else {
-                // Maximize
                 maximizedPane = pane;
                 if (pane === 'design') {
                     designPane.classList.add('pane-maximized');
@@ -1124,7 +1222,6 @@ Write your design and testbench, then click 'Run Code'.</span>
                     renderLineHighlight: 'all',
                     cursorBlinking: 'smooth',
                     cursorSmoothCaretAnimation: true
-                    // mouseWheelZoom removed to prevent event-spam lag
                 };
 
                 if(editorDesign) editorDesign.dispose();
@@ -1144,9 +1241,20 @@ Write your design and testbench, then click 'Run Code'.</span>
             });
         }
 
-        function downloadCode() {
+        async function downloadCode() {
             if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
             if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+
+            if (currentDirHandle) {
+                try {
+                    await syncToLocalFolder();
+                    alert("Files synced successfully directly to your local folder!");
+                    return; 
+                } catch(err) {
+                    alert("Sync to local folder failed. Falling back to downloading code file.");
+                    console.error("Local sync error:", err);
+                }
+            }
 
             let defaultName = `ls_project_${Date.now()}.sv`;
             let filename = prompt("Enter a name for your exported project:", defaultName);
@@ -1259,7 +1367,6 @@ Write your design and testbench, then click 'Run Code'.</span>
                 return;
             }
 
-            // Save immediately before running
             saveDraftsLocally();
 
             const btnRun = document.getElementById('btn-run');
