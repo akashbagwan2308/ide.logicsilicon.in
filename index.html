@@ -81,6 +81,10 @@
         .toggle-checkbox:checked + .toggle-label {
             background-color: #6366f1;
         }
+        
+        /* Modal Animation */
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-animate { animation: modalFadeIn 0.2s ease-out forwards; }
     </style>
 </head>
 <body class="bg-white text-slate-900 dark:bg-dark-bg dark:text-slate-200 transition-colors duration-200" onclick="closeSettingsMenu()">
@@ -216,21 +220,15 @@
                         <span class="hidden sm:inline" id="btn-save-text">Save</span>
                     </button>
 
-
-
                     <button id="btn-save-git" onclick="saveToGitHub()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-white text-[13px] font-medium transition-colors border border-slate-700 ml-1" title="Push to GitHub">
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.03-2.682-.103-.253-.447-1.27.098-2.646 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.748-1.025 2.748-1.025.546 1.376.202 2.394.1 2.646.64.699 1.026 1.591 1.026 2.682 0 3.841-2.337 4.687-4.565 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"></path></svg>
                         <span class="hidden sm:inline">Push to Git</span>
                     </button>
-
                     
-                    <!-- DIVIDER -->
                     <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden md:block mx-1"></div>
 
-                    <!-- AUTO-SAVE TIMESTAMP -->
                     <div id="last-save-time" class="hidden md:flex items-center  gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-tighter" title="Code is auto-saved locally">
-                        <!-- Filled via JS -->
-                    </div>
+                        </div>
 
                 </div>
             </div>
@@ -385,6 +383,46 @@ Write your design and testbench, then click 'Run Code'.</span>
 
     <script>
         // =========================================================
+        // INDEXED-DB HELPER (For native folder persistence)
+        // =========================================================
+        const idb = {
+            db: null,
+            init() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open('LogicSiliconIDE', 1);
+                    req.onupgradeneeded = (e) => { e.target.result.createObjectStore('handles'); };
+                    req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+                    req.onerror = () => reject();
+                });
+            },
+            async set(key, val) {
+                if(!this.db) await this.init();
+                return new Promise(r => {
+                    const tx = this.db.transaction('handles', 'readwrite');
+                    tx.objectStore('handles').put(val, key);
+                    tx.oncomplete = () => r();
+                });
+            },
+            async get(key) {
+                if(!this.db) await this.init();
+                return new Promise(r => {
+                    const tx = this.db.transaction('handles', 'readonly');
+                    const req = tx.objectStore('handles').get(key);
+                    req.onsuccess = () => r(req.result);
+                    req.onerror = () => r(null);
+                });
+            },
+            async del(key) {
+                if(!this.db) await this.init();
+                return new Promise(r => {
+                    const tx = this.db.transaction('handles', 'readwrite');
+                    tx.objectStore('handles').delete(key);
+                    tx.oncomplete = () => r();
+                });
+            }
+        };
+
+        // =========================================================
         // CONFIGURATION & STATE
         // =========================================================
         
@@ -408,6 +446,7 @@ Write your design and testbench, then click 'Run Code'.</span>
         
         // Native System API Directory Tracker
         let currentDirHandle = null;
+        window.hasFolderPermission = false; 
 
         let designFiles = [{ name: "design.sv", content: "module top_module(\n    input logic a,\n    input logic b,\n    output logic y\n);\n\n    assign y = a ^ b;\n\nendmodule" }];
         let tbFiles = [{ name: "testbench.sv", content: "`timescale 1ns/1ns \n  module tb();\n    logic a, b;\n    logic y;\n\n    // Instantiate the design under test (DUT)\n    top_module dut(.a(a), .b(b), .y(y));\n\n    initial begin\n        $dumpfile(\"dump.vcd\");\n        $dumpvars(0, tb);\n        \n        $display(\"Time\\t a b | y\");\n        $monitor(\"%0t\\t %b %b | %b\", $time, a, b, y);\n\n        // Test Vectors\n        a = 0; b = 0; #10;\n        a = 0; b = 1; #10;\n        a = 1; b = 0; #10;\n        a = 1; b = 1; #10;\n        \n        $display(\"\\nSimulation Complete.\");\n        $finish;\n    end\nendmodule" }];
@@ -415,6 +454,10 @@ Write your design and testbench, then click 'Run Code'.</span>
         let activeDesignIdx = 0;
         let activeTbIdx = 0;
         let maximizedPane = null; 
+
+        // Drag & Drop specific state variables
+        window.dragSrcIdx = null;
+        window.dragPaneType = null;
 
         let editorSettings = { wrap: false, minimap: false, fontSize: 14 };
         let currentHeroSlide = 0;
@@ -447,7 +490,9 @@ Write your design and testbench, then click 'Run Code'.</span>
         async function toggleProjectFolder() {
             if (currentDirHandle) {
                 if (confirm("Disconnect current local folder? Your files will remain in the browser but won't auto-sync to the disk.")) {
+                    await idb.del('projectFolder');
                     currentDirHandle = null;
+                    window.hasFolderPermission = false;
                     document.getElementById('btn-save-text').innerText = "Save";
                     document.getElementById('btn-folder-text').innerText = "Open Folder";
                     document.getElementById('btn-open-folder').title = "Open Local Folder";
@@ -468,7 +513,9 @@ Write your design and testbench, then click 'Run Code'.</span>
                 }
                 
                 const directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                currentDirHandle = directoryHandle; // Keep active handle in memory for syncing
+                currentDirHandle = directoryHandle; 
+                await idb.set('projectFolder', directoryHandle);
+                window.hasFolderPermission = true;
                 
                 let tempDesign = [];
                 let tempTb = [];
@@ -500,7 +547,7 @@ Write your design and testbench, then click 'Run Code'.</span>
                 renderTabs('design');
                 renderTabs('tb');
                 
-                document.getElementById('btn-save-text').innerText = "Sync"; // Change button name dynamically
+                document.getElementById('btn-save-text').innerText = "Sync"; 
                 document.getElementById('btn-folder-text').innerText = "Close Folder";
                 document.getElementById('btn-open-folder').title = "Disconnect Local Folder";
                 
@@ -511,14 +558,35 @@ Write your design and testbench, then click 'Run Code'.</span>
             }
         }
 
-        async function syncToLocalFolder() {
+        async function syncToLocalFolder(isManualClick = false) {
             if (!currentDirHandle) return;
+            
+            // Re-request permission if reloaded from IndexedDB and not yet granted
+            if (!window.hasFolderPermission) {
+                if (isManualClick) {
+                    try {
+                        const perm = await currentDirHandle.requestPermission({mode: 'readwrite'});
+                        if (perm === 'granted') {
+                            window.hasFolderPermission = true;
+                            document.getElementById('btn-save-text').innerText = "Sync";
+                        } else {
+                            alert("Permission denied. Cannot sync to folder.");
+                            return;
+                        }
+                    } catch(err) {
+                        return;
+                    }
+                } else {
+                    // Auto-sync skip gracefully if permission pending
+                    return; 
+                }
+            }
+
             try {
                 const allFiles = [...designFiles, ...tbFiles];
                 for (const f of allFiles) {
                     let handle = f.handle;
                     if (!handle) {
-                        // Create handle if it's a newly added file during this session
                         handle = await currentDirHandle.getFileHandle(f.name, { create: true });
                         f.handle = handle;
                     }
@@ -562,16 +630,14 @@ Write your design and testbench, then click 'Run Code'.</span>
         // LOCAL DRAFT SAVING
         // =========================================================
         async function saveDraftsLocally() {
-            if (editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if (editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+            if (editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
+            if (editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
 
-            // Store cleanly in localStorage by explicitly mapping to avoid stringifying the un-serializable FileSystemHandle 
             localStorage.setItem(LS_DESIGN_DRAFT, JSON.stringify(designFiles.map(f => ({name: f.name, content: f.content}))));
             localStorage.setItem(LS_TB_DRAFT, JSON.stringify(tbFiles.map(f => ({name: f.name, content: f.content}))));
 
-            // Execute auto-sync if we have a bound directory
             if (currentDirHandle) {
-                syncToLocalFolder().catch(err => console.error("Auto-sync failed:", err));
+                syncToLocalFolder(false).catch(err => console.error("Auto-sync failed:", err));
             }
 
             const timeElement = document.getElementById('last-save-time');
@@ -797,7 +863,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             localStorage.setItem('ls_editor_settings', JSON.stringify(editorSettings));
         };
 
-        function showSimulator() {
+        async function showSimulator() {
             document.getElementById('login-view').classList.remove('active');
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('simulator-view').classList.remove('hidden');
@@ -805,6 +871,19 @@ Write your design and testbench, then click 'Run Code'.</span>
             document.getElementById('nav-user-email').innerText = currentUser.email;
             
             loadDraftsLocally();
+
+            try {
+                currentDirHandle = await idb.get('projectFolder');
+                if (currentDirHandle) {
+                    const perm = await currentDirHandle.queryPermission({mode: 'readwrite'});
+                    window.hasFolderPermission = (perm === 'granted');
+                    document.getElementById('btn-save-text').innerText = window.hasFolderPermission ? "Sync" : "Reconnect Sync"; 
+                    document.getElementById('btn-folder-text').innerText = "Close Folder";
+                    document.getElementById('btn-open-folder').title = "Disconnect Local Folder";
+                }
+            } catch(e) {
+                console.error("Could not restore folder handle", e);
+            }
             
             setTimeout(initMonaco, 100);
         }
@@ -907,8 +986,8 @@ Write your design and testbench, then click 'Run Code'.</span>
                 return;
             }
 
-            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+            if(editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
+            if(editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
 
             let defaultName = `project_${Date.now()}.sv`;
             let filename = prompt(`Commit to ${currentGitOwner}/${currentGitRepo}\nEnter filename:`, defaultName);
@@ -961,7 +1040,7 @@ Write your design and testbench, then click 'Run Code'.</span>
             }
         }
 
-        function logout() {
+        async function logout() {
             sessionStorage.removeItem('ls_jwt_token'); 
             sessionStorage.removeItem('ls_playground_user');
             sessionStorage.removeItem('ls_last_vcd');
@@ -974,7 +1053,10 @@ Write your design and testbench, then click 'Run Code'.</span>
 
             localStorage.removeItem(LS_DESIGN_DRAFT);
             localStorage.removeItem(LS_TB_DRAFT);
+
+            await idb.del('projectFolder');
             currentDirHandle = null; 
+            window.hasFolderPermission = false;
             document.getElementById('btn-save-text').innerText = "Save";
             const fText = document.getElementById('btn-folder-text');
             if(fText) {
@@ -1021,11 +1103,61 @@ Write your design and testbench, then click 'Run Code'.</span>
                     ? `<svg class="w-3.5 h-3.5 text-[#0ea5e9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
                     : `<svg class="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
 
-                let closeBtn = idx > 0 ? `<div onclick="deleteFile('${paneType}', ${idx}, event)" class="ml-1.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors" title="Delete File"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></div>` : '';
+                let closeBtn = `<div onclick="deleteFile('${paneType}', ${idx}, event)" class="ml-1.5 w-4 h-4 flex items-center justify-center rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors" title="Close/Delete File"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></div>`;
 
-                tab.className = `px-4 py-2 border flex items-center gap-2 relative -mb-[1px] cursor-pointer transition-colors shrink-0 ${activeClasses}`;
+                tab.className = `px-4 py-2 border flex items-center gap-2 relative -mb-[1px] cursor-pointer transition-all shrink-0 ${activeClasses}`;
                 tab.onclick = () => switchFileTab(paneType, idx);
                 
+                // --- DRAG AND DROP IMPLEMENTATION ---
+                tab.draggable = true;
+                tab.addEventListener('dragstart', (e) => {
+                    window.dragSrcIdx = idx;
+                    window.dragPaneType = paneType;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => tab.classList.add('opacity-40'), 0);
+                });
+                tab.addEventListener('dragend', (e) => {
+                    tab.classList.remove('opacity-40');
+                    window.dragSrcIdx = null;
+                    window.dragPaneType = null;
+                });
+                tab.addEventListener('dragover', (e) => {
+                    e.preventDefault(); 
+                    e.dataTransfer.dropEffect = 'move';
+                    tab.classList.add('bg-slate-200', 'dark:bg-[#252526]');
+                });
+                tab.addEventListener('dragleave', (e) => {
+                    if(!isActive) tab.classList.remove('bg-slate-200', 'dark:bg-[#252526]');
+                });
+                tab.addEventListener('drop', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (window.dragPaneType !== paneType) return;
+                    
+                    if (window.dragSrcIdx !== null && window.dragSrcIdx !== idx) {
+                        const activeArray = paneType === 'design' ? designFiles : tbFiles;
+                        let actIdx = paneType === 'design' ? activeDesignIdx : activeTbIdx;
+                        
+                        const draggedItem = activeArray.splice(window.dragSrcIdx, 1)[0];
+                        activeArray.splice(idx, 0, draggedItem);
+                        
+                        if (actIdx === window.dragSrcIdx) {
+                            actIdx = idx;
+                        } else if (window.dragSrcIdx < actIdx && idx >= actIdx) {
+                            actIdx--;
+                        } else if (window.dragSrcIdx > actIdx && idx <= actIdx) {
+                            actIdx++;
+                        }
+                        
+                        if (paneType === 'design') activeDesignIdx = actIdx;
+                        else activeTbIdx = actIdx;
+                        
+                        renderTabs(paneType);
+                        saveDraftsLocally();
+                    }
+                });
+                // -------------------------------------
+
                 tab.innerHTML = `
                     ${svgIcon}
                     <span class="font-medium text-[13px] font-mono tracking-tight ${textClasses}">${file.name}</span>
@@ -1035,30 +1167,93 @@ Write your design and testbench, then click 'Run Code'.</span>
             });
         }
 
+        function showCustomConfirm(filename) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center fade-transition';
+                
+                const modal = document.createElement('div');
+                modal.className = 'bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm w-full mx-4 modal-animate';
+                
+                modal.innerHTML = `
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Close Tab</h3>
+                    </div>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                        You are closing <span class="font-mono text-indigo-500 dark:text-indigo-400 font-bold">'${filename}'</span>. Do you want to remove it permanently from the synced folder, or just close the tab?
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-modal-delete" class="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-sm">Delete from Disk</button>
+                        <button id="btn-modal-close" class="w-full py-2.5 px-4 rounded-xl font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors border border-slate-200 dark:border-slate-600">Just Close Tab</button>
+                        <button id="btn-modal-cancel" class="w-full py-2 px-4 rounded-xl font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors mt-1">Cancel</button>
+                    </div>
+                `;
+                
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+                
+                const cleanup = () => document.body.removeChild(overlay);
+                
+                document.getElementById('btn-modal-delete').onclick = () => { cleanup(); resolve('delete'); };
+                document.getElementById('btn-modal-close').onclick = () => { cleanup(); resolve('close'); };
+                document.getElementById('btn-modal-cancel').onclick = () => { cleanup(); resolve('cancel'); };
+            });
+        }
+
         window.deleteFile = async function(paneType, idx, e) {
             e.stopPropagation();
             let filename = paneType === 'design' ? designFiles[idx].name : tbFiles[idx].name;
-            if(!confirm("Delete file '" + filename + "'?")) return;
+            
+            let deleteFromDiskConfirmed = false;
 
-            // Delete physically from local folder if mapped
+            // CLOSE VS DELETE PROMPT
             if (currentDirHandle) {
-                try {
-                    await currentDirHandle.removeEntry(filename);
-                } catch(err) {
-                    console.warn(`Could not delete ${filename} from local folder:`, err);
+                const action = await showCustomConfirm(filename);
+                if (action === 'cancel') return;
+                if (action === 'delete') deleteFromDiskConfirmed = true;
+            } else {
+                if(!confirm("Close file '" + filename + "'?")) return;
+            }
+
+            // Physically remove from local folder if user confirmed
+            if (deleteFromDiskConfirmed && currentDirHandle) {
+                if (!window.hasFolderPermission) {
+                    try {
+                        const perm = await currentDirHandle.requestPermission({mode: 'readwrite'});
+                        if(perm === 'granted') {
+                            window.hasFolderPermission = true;
+                            document.getElementById('btn-save-text').innerText = "Sync";
+                        }
+                    } catch(e) { }
+                }
+                if (window.hasFolderPermission) {
+                    try {
+                        await currentDirHandle.removeEntry(filename);
+                    } catch(err) {
+                        console.warn(`Could not delete ${filename} from local folder:`, err);
+                        alert(`Failed to delete '${filename}' from disk. It might be locked by another program.`);
+                    }
                 }
             }
 
             if (paneType === 'design') {
+                // Save current editor state before slicing
                 if (activeDesignIdx !== idx && editorDesign) {
                     designFiles[activeDesignIdx].content = editorDesign.getValue();
                 }
                 
                 designFiles.splice(idx, 1);
                 
+                // Shift indices to maintain proper active tab
                 if (activeDesignIdx === idx) {
                     activeDesignIdx = Math.max(0, idx - 1);
-                    if(editorDesign) editorDesign.setValue(designFiles[activeDesignIdx].content);
+                    if(editorDesign) {
+                        if(designFiles.length > 0) editorDesign.setValue(designFiles[activeDesignIdx].content);
+                        else editorDesign.setValue("// No files open");
+                    }
                 } else if (activeDesignIdx > idx) {
                     activeDesignIdx--;
                 }
@@ -1072,7 +1267,10 @@ Write your design and testbench, then click 'Run Code'.</span>
                 
                 if (activeTbIdx === idx) {
                     activeTbIdx = Math.max(0, idx - 1);
-                    if(editorTb) editorTb.setValue(tbFiles[activeTbIdx].content);
+                    if(editorTb) {
+                        if(tbFiles.length > 0) editorTb.setValue(tbFiles[activeTbIdx].content);
+                        else editorTb.setValue("// No files open");
+                    }
                 } else if (activeTbIdx > idx) {
                     activeTbIdx--;
                 }
@@ -1103,14 +1301,14 @@ Write your design and testbench, then click 'Run Code'.</span>
 
         function switchFileTab(paneType, newIdx) {
             if (paneType === 'design') {
-                if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
+                if(editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
                 activeDesignIdx = newIdx;
-                if(editorDesign) editorDesign.setValue(designFiles[activeDesignIdx].content);
+                if(editorDesign && designFiles.length > 0) editorDesign.setValue(designFiles[activeDesignIdx].content);
                 renderTabs('design');
             } else {
-                if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+                if(editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
                 activeTbIdx = newIdx;
-                if(editorTb) editorTb.setValue(tbFiles[activeTbIdx].content);
+                if(editorTb && tbFiles.length > 0) editorTb.setValue(tbFiles[activeTbIdx].content);
                 renderTabs('tb');
             }
         }
@@ -1160,8 +1358,8 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         function bundleFiles() {
-            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+            if(editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
+            if(editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
             
             let allFiles = [...designFiles, ...tbFiles];
             let includedFiles = new Set();
@@ -1228,13 +1426,13 @@ Write your design and testbench, then click 'Run Code'.</span>
 
                 if(editorDesign) editorDesign.dispose();
                 editorDesign = monaco.editor.create(document.getElementById('monaco-design'), {
-                    value: designFiles[activeDesignIdx].content,
+                    value: designFiles.length > 0 ? designFiles[activeDesignIdx].content : "",
                     ...commonConfig
                 });
 
                 if(editorTb) editorTb.dispose();
                 editorTb = monaco.editor.create(document.getElementById('monaco-tb'), {
-                    value: tbFiles[activeTbIdx].content,
+                    value: tbFiles.length > 0 ? tbFiles[activeTbIdx].content : "",
                     ...commonConfig
                 });
                 
@@ -1244,13 +1442,15 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         async function downloadCode() {
-            if(editorDesign) designFiles[activeDesignIdx].content = editorDesign.getValue();
-            if(editorTb) tbFiles[activeTbIdx].content = editorTb.getValue();
+            if(editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
+            if(editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
 
             if (currentDirHandle) {
                 try {
-                    await syncToLocalFolder();
-                    alert("Files synced successfully directly to your local folder!");
+                    await syncToLocalFolder(true);
+                    if(window.hasFolderPermission) {
+                        alert("Files synced successfully directly to your local folder!");
+                    }
                     return; 
                 } catch(err) {
                     alert("Sync to local folder failed. Falling back to downloading code file.");
@@ -1351,8 +1551,10 @@ Write your design and testbench, then click 'Run Code'.</span>
                     
                 } else {
                     if(editorDesign) editorDesign.setValue(content);
-                    designFiles[activeDesignIdx].content = content;
-                    alert(`Standard file loaded into the active Design tab: ${designFiles[activeDesignIdx].name}`);
+                    if(designFiles.length > 0) {
+                        designFiles[activeDesignIdx].content = content;
+                        alert(`Standard file loaded into the active Design tab: ${designFiles[activeDesignIdx].name}`);
+                    }
                 }
                 saveDraftsLocally();
             };
