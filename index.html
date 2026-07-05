@@ -194,7 +194,7 @@
     <div id="simulator-view" class="view flex-col bg-white dark:bg-dark-bg transition-colors h-screen w-full">
         
         <nav class="h-14 bg-white dark:bg-[#18181b] border-b border-slate-200 dark:border-[#27272a] flex items-center justify-between px-4 shrink-0 z-20 transition-colors">
-            <div class="flex items-center gap-5">
+            <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg flex items-center justify-center font-bold text-[13px] shadow-sm">LS</div>
                     <span class="font-bold text-sm text-slate-800 dark:text-slate-200 transition-colors hidden sm:block">Playground</span>
@@ -202,9 +202,9 @@
                 
                 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
                 
-                <div class="flex items-center gap-2 relative">
+                <div class="flex items-center gap-1 relative">
                     
-                    <button id="btn-open-folder" onclick="toggleProjectFolder()" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Open Local Folder">
+                    <button id="btn-open-folder" onclick="toggleProjectFolder()" class="flex items-center gap-1 px-1 py-1.5 rounded-md bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-[13px] font-medium transition-colors" title="Open Local Folder">
                         <span class="text-sky-500 text-lg leading-none">📂</span>
                         <span class="hidden sm:inline" id="btn-folder-text">Open Folder</span>
                     </button>
@@ -283,6 +283,11 @@
                         </div>
                     </div>
                 </div>
+
+<a href="docs.html" target="_blank" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center justify-center w-5 h-5" title="Help & Documentation">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+</a>
+
 
                 <button onclick="openRTLViewer(); event.stopPropagation();" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Shift+Enter">
                     👁️ RTL Schematic

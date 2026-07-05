@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicSilicon | Documentation & Guide</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        lsblue: {
+                            DEFAULT: '#02569B',
+                            dark: '#01437A',
+                            light: '#e3f2fd'
+                        },
+                        dark: {
+                            bg: '#090E17',
+                            panel: '#1e293b',
+                            border: '#334155'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        .dark body { background-color: #0f172a; }
+        h1, h2, h3, h4, h5, .font-display { font-family: 'Google Sans', sans-serif; }
+        .code-font { font-family: 'Fira Code', monospace; }
+        
+        .btn-primary { background-color: #02569B; color: white; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(2, 86, 155, 0.3); }
+        .btn-primary:hover { background-color: #01437A; box-shadow: 0 6px 20px rgba(2, 86, 155, 0.4); transform: translateY(-1px); }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .feature-card { transition: all 0.2s ease; }
+        .feature-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); }
+        .dark .feature-card:hover { box-shadow: 0 12px 24px -10px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body class="text-slate-900 dark:text-slate-200 transition-colors duration-200 min-h-screen flex flex-col">
+
+    <header class="h-16 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-dark-border flex items-center justify-between px-6 sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-lsblue text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-md">LS</div>
+            <div>
+                <h1 class="font-display font-bold text-[20px] text-slate-800 dark:text-white tracking-tight leading-none">LogicSilicon <span class="font-normal text-slate-400 dark:text-slate-500">| Docs</span></h1>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="document.documentElement.classList.toggle('dark')" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-lsblue transition-colors flex items-center gap-2 text-sm font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <span class="hidden sm:inline">Theme</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
+        
+        <div class="mb-14 text-center fade-in">
+            <h2 class="text-4xl md:text-5xl font-display font-extrabold mb-4 tracking-tight text-slate-900 dark:text-white">Platform User Guide</h2>
+            <p class="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto">Master the complete LogicSilicon engineering ecosystem. Learn how to configure your IDE, navigate RTL hierarchies, and perform advanced waveform analysis.</p>
+        </div>
+
+        <div class="space-y-12">
+            
+            <section class="fade-in" style="animation-delay: 0.1s;">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-slate-800 dark:text-white">1. Playground IDE</h3>
+                </div>
+                
+                <div class="bg-white dark:bg-dark-panel rounded-[24px] border border-slate-200 dark:border-dark-border shadow-sm p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">File & Workspace Management</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">📂 Native Folder Sync:</strong> Click <em>Open Folder</em> to link a local directory on your PC. Any changes you make in the browser will automatically sync to your hard drive in real-time.</li>
+                                <li><strong class="text-slate-900 dark:text-white">☁️ GitHub Push:</strong> Click the gear icon (⚙️) to connect a repository using a Personal Access Token. Use the <em>Push to Git</em> button to commit your bundled workspace directly to GitHub.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Drag & Drop Tabs:</strong> Rearrange your open `.sv` files by simply dragging their tabs. Dragging a tab from the Design pane to the Testbench pane moves the file between editors.</li>
+                                <li><strong class="text-slate-900 dark:text-white">File Upload:</strong> Click <em>Upload</em> to parse multi-file bundles. The IDE automatically splits <code>// === DESIGN FILE:</code> blocks into separate tabs.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">Editor Controls & Settings</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Dual Monaco Engine:</strong> The IDE features a split pane. You can collapse/expand panes by clicking the maximize icon (<svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zm6 10h2v6h-6v-2h4v-4zM4 14h2v4h4v2H4v-6z"></path></svg>) on the top right of either the Design or Testbench tabs.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Settings Menu (⚙️):</strong> Toggle <em>Word Wrap</em>, enable the <em>Minimap</em> overview, or change the universal <em>Font Size</em>.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Compilation:</strong> Click <span class="bg-emerald-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">▶ Run Code</span> to send the bundle to the cloud. Output logs appear in the bottom terminal.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fade-in" style="animation-delay: 0.2s;">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-slate-800 dark:text-white">2. RTL Schematic Viewer V10</h3>
+                </div>
+                
+                <div class="bg-white dark:bg-dark-panel rounded-[24px] border border-slate-200 dark:border-dark-border shadow-sm p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">Navigation & Hierarchy</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Traversing Modules:</strong> Click on an <em>Instance</em> block (like a Full Adder inside a Ripple Carry Adder) to select it, then click <strong>Down</strong> (or double-click) to view its internal circuitry. Click <strong>Up</strong> (or Backspace) to return to the parent module.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Breadcrumbs:</strong> The top-left bar shows your current depth (e.g., <code>🏠 > top_module > ALU</code>). Click any level to instantly jump back.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Auto-Routing:</strong> By default, it uses Manhattan routing. Click <span class="bg-sky-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">✨ Arrange</span> to trigger the advanced ELK engine for perfect orthogonal pathfinding.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">Interactive Simulation & Editing</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Live Wire Coloring:</strong> If a VCD waveform exists, wires will color-code to match the state at the current time (Green=1, Grey=0, Red=X, Yellow=Z, Blue=Bus).</li>
+                                <li><strong class="text-slate-900 dark:text-white">Time Control:</strong> A widget at the bottom center lets you slide through the simulation time. Click the play button (▶) to auto-play the schematic animations.</li>
+                                <li><strong class="text-slate-900 dark:text-white">TB Co-Simulation:</strong> Click <span class="bg-indigo-600 text-white px-1.5 py-0.5 rounded text-xs font-bold">🧪 View with TB</span> to inject testbench variables and memory arrays directly into the schematic view alongside your hardware.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Source Code Pane:</strong> Click <em>Source Code</em> in the header to open a resizable Monaco editor sidebar. Make edits and click <em>⚡ Resync</em> to instantly rebuild the schematic without leaving the viewer.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fade-in" style="animation-delay: 0.3s;">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h4l3-9 5 18 3-9h4"></path></svg>
+                    </div>
+                    <h3 class="text-2xl font-display font-bold text-slate-800 dark:text-white">3. WaveViewer Pro</h3>
+                </div>
+                
+                <div class="bg-white dark:bg-dark-panel rounded-[24px] border border-slate-200 dark:border-dark-border shadow-sm p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">Timeline & Cursor Control</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Canvas Panning:</strong> Hold <kbd class="code-font bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">Shift</kbd> and drag your mouse to pan left and right across the infinite canvas.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Cursor Tracking:</strong> Simply move your mouse over the canvas to see a faint guide line. Click anywhere to lock the <strong>Primary Cursor</strong> (solid line), which updates the values shown in the left sidebar.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Delta-Time (Δt) Anchor:</strong> <em>Right-click</em> anywhere to drop a yellow Anchor. The viewer will draw a connecting line between the Anchor and your Cursor, automatically calculating the time difference (Δt) and Frequency (Hz).</li>
+                            </ul>
+                            <h4 class="font-bold text-lg mt-6 mb-3 text-lsblue dark:text-sky-400">Search & Edge Jumping</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Select Signal:</strong> Click any signal name in the left panel to highlight its row.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Jump to Edge:</strong> With a signal selected, use the <kbd class="code-font bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">&lt;</kbd> and <kbd class="code-font bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">&gt;</kbd> buttons in the top navbar to instantly snap your cursor to that signal's next/previous value change.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Value Finder (🔍):</strong> Click the magnifying glass to search for an exact state (e.g., finding exactly when a bus hits Hex `F`).</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-lg mb-3 text-lsblue dark:text-sky-400">Workspace Organization</h4>
+                            <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                                <li><strong class="text-slate-900 dark:text-white">Add / Remove:</strong> Click <span class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 rounded text-xs font-bold">+</span> to open the injection menu to add missing signals. Hover over a row and click the <code>X</code> to hide it.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Folders & Dividers:</strong> Use the `+` menu to add visual text dividers, or create Folders. Click "Add Inside" on a folder to nest signals inside it, and click the folder name to collapse/hide the entire group.</li>
+                                <li><strong class="text-slate-900 dark:text-white">Full Path Toggle:</strong> Click the expanding arrows icon (<svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>) to switch between short signal names (e.g., `clk`) and their full hierarchical paths (e.g., `tb.dut.clk`).</li>
+                                <li><strong class="text-slate-900 dark:text-white">Base Display:</strong> Use the global dropdown to change how bus values are read (Hex, Dec, Bin, Octal).</li>
+                                <li><strong class="text-slate-900 dark:text-white">Snapshot Export:</strong> Click <span class="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 px-1.5 py-0.5 rounded text-xs font-bold">Snapshot</span> to instantly render the entire visible sidebar and waveform track into a clean, high-definition PNG file for your lab reports.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="fade-in" style="animation-delay: 0.4s;">
+                <h3 class="text-2xl font-display font-bold mb-4 pl-2 text-slate-800 dark:text-white">Universal Shortcuts</h3>
+                <div class="bg-white dark:bg-dark-panel rounded-[24px] border border-slate-200 dark:border-dark-border shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50">
+                                <tr>
+                                    <th class="px-6 py-4">Shortcut</th>
+                                    <th class="px-6 py-4">Application Context</th>
+                                    <th class="px-6 py-4">Resulting Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50 text-slate-600 dark:text-slate-300">
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold"><kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Ctrl</kbd> + <kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Enter</kbd></td>
+                                    <td class="px-6 py-4 font-medium">Playground IDE</td>
+                                    <td class="px-6 py-4">Trigger secure compilation and run simulation</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold"><kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Ctrl</kbd> + <kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Shift</kbd> + <kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Enter</kbd></td>
+                                    <td class="px-6 py-4 font-medium">Playground IDE</td>
+                                    <td class="px-6 py-4">Synthesize and open RTL Schematic</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold"><kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Ctrl</kbd> + <kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">S</kbd></td>
+                                    <td class="px-6 py-4 font-medium">Playground IDE</td>
+                                    <td class="px-6 py-4">Force save to local Native File System directory</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold"><kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">Alt</kbd> + <kbd class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">F</kbd></td>
+                                    <td class="px-6 py-4 font-medium">Playground IDE</td>
+                                    <td class="px-6 py-4">Toggle Fullscreen mode</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold">Double Click</td>
+                                    <td class="px-6 py-4 font-medium">RTL Schematic</td>
+                                    <td class="px-6 py-4">Drill down into a selected Instance module hierarchy</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold">Backspace</td>
+                                    <td class="px-6 py-4 font-medium">RTL Schematic</td>
+                                    <td class="px-6 py-4">Navigate up one level in the hierarchy</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold">Shift + Scroll</td>
+                                    <td class="px-6 py-4 font-medium">WaveViewer Pro</td>
+                                    <td class="px-6 py-4">Pan across the infinite timeline canvas</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td class="px-6 py-4 font-mono font-bold">Right Click</td>
+                                    <td class="px-6 py-4 font-medium">WaveViewer Pro</td>
+                                    <td class="px-6 py-4">Drop a Delta-time Anchor on the timeline</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+</html>

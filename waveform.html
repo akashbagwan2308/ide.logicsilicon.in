@@ -113,7 +113,7 @@
         .sig-name-container {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             overflow: hidden;
             flex: 1;
         }
@@ -139,20 +139,6 @@
         .dark .val-x { color: #ef4444; border-color: #dc2626; background: rgba(239, 68, 68, 0.1); }
         .dark .val-z { color: #eab308; border-color: #ca8a04; background: rgba(234, 179, 8, 0.1); }
         .dark .val-bus { color: #3b82f6; border-color: #2563eb; background: rgba(59, 130, 246, 0.1); }
-
-        .radix-btn {
-            font-size: 10px;
-            font-weight: 700;
-            padding: 3px 6px;
-            border-radius: 4px;
-            background-color: #e2e8f0;
-            color: #64748b;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .radix-btn:hover { background-color: #cbd5e1; color: #475569; }
-        .dark .radix-btn { background-color: #334155; color: #94a3b8; }
-        .dark .radix-btn:hover { background-color: #475569; color: #fff; }
 
         .remove-btn {
             opacity: 0;
@@ -227,6 +213,12 @@
         </div>
         
         <div class="flex items-center gap-2">
+            
+            <button onclick="exportWaveformPNG()" class="px-3 h-[34px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/80 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm mr-1" title="Export High-Res Image for Reports">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Snapshot
+            </button>
+
             <div class="bg-slate-50 dark:bg-[#1e293b] p-1 rounded-lg border border-slate-200 dark:border-[#334155] flex items-center mr-1 transition-colors h-[34px] shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase px-2 tracking-widest">Base</span>
                 <select id="global-radix" onchange="changeGlobalRadix(this.value)" class="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold rounded hover:border-indigo-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none cursor-pointer py-1 px-2 appearance-none text-center shadow-sm transition-colors">
@@ -272,17 +264,20 @@
     <div id="viewer-container" class="hidden">
         <div id="signal-list">
             <div class="signal-header text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">
-                <div class="flex items-center gap-2">
-                    <span>Signal Name</span>
-                    <button onclick="showAddSignalMenu(event)" class="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors" title="Add Signal">+</button>
+                <div class="flex items-center gap-1.5">
+                    <span>Signals Workspace</span>
+                    <button onclick="toggleFullPath(event)" id="btn-path-toggle" class="w-5 h-5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" title="Toggle Full Hierarchical Path">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    </button>
+                    <button onclick="showAddSignalMenu(event)" class="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 font-extrabold transition-colors shadow-sm" title="Add Components (Signals / Dividers / Groups)">+</button>
                 </div>
-                <span>Cursor Val</span>
+                <span class="mr-[54px]">Values</span>
 
-                <div id="add-signal-menu" class="hidden absolute top-8 left-4 w-48 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 overflow-y-auto max-h-64 normal-case tracking-normal font-medium shadow-[0_10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.4)]">
-                    </div>
+                <div id="add-signal-menu" class="hidden absolute top-8 left-4 w-52 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 py-1.5 overflow-y-auto max-h-72 normal-case tracking-normal font-medium shadow-[0_10px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_25px_rgba(0,0,0,0.4)]">
+                </div>
             </div>
             <div id="signal-list-scroll">
-                <div id="signal-names-container" class="py-2"></div>
+                <div id="signal-names-container" class="py-1"></div>
             </div>
         </div>
 
@@ -300,23 +295,27 @@
     <script>
         // --- 1. STATE & THEME MANAGEMENT ---
         let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
+        
         let visibleSignals = [];
+        
         let scale = 10;
         const paddingX = 20; 
         const rowHeight = 40;
         const waveHeight = 24;
         const paddingY = (rowHeight - waveHeight) / 2;
         
-        let hoverTime = 0;
-        let anchorTime = null;
+        // Fast hover paradigm state
+        let hoverTime = 0;   
+        let anchorTime = null; 
+        
         let isPanning = false;
         let startX = 0;
         let scrollLeft = 0;
         
         let isDarkMode = false;
         let globalRadix = 'hex'; 
+        let showFullPath = false;
 
-        // Canvas context setup
         const waveCanvas = document.getElementById('wave-canvas');
         const cursorCanvas = document.getElementById('cursor-canvas');
         const timeCanvas = document.getElementById('timeline-canvas');
@@ -365,22 +364,42 @@
             if (isDarkMode) {
                 return {
                     timelineBg: '#0f172a', timelineText: '#94a3b8', timelineTick: '#334155',
-                    gridLines: 'rgba(255, 255, 255, 0.05)', rowAltBg: 'rgba(255, 255, 255, 0.015)', cursorLine: 'rgba(255, 255, 255, 0.4)',
+                    gridLines: 'rgba(255, 255, 255, 0.05)', rowAltBg: 'rgba(255, 255, 255, 0.015)', 
+                    cursorLine: 'rgba(255,255,255,0.4)',
                     val1: '#22c55e', val1Fill: 'rgba(34, 197, 94, 0.12)', val0: '#22c55e',
                     valX: '#ef4444', valXFill: 'rgba(239, 68, 68, 0.15)', valZ: '#eab308',
                     valBus: '#3b82f6', busTextVal: '#cbd5e1', busTextX: '#ef4444', anchor: '#eab308',
-                    deltaLine: 'rgba(99, 102, 241, 0.9)', deltaBg: '#4f46e5', deltaText: '#fff'
+                    deltaLine: 'rgba(99, 102, 241, 0.9)', deltaBg: '#4f46e5', deltaText: '#fff',
+                    dividerBg: '#1e293b', dividerText: '#cbd5e1', groupBg: '#111827', groupText: '#6366f1'
                 };
             } else {
                 return {
                     timelineBg: '#f1f5f9', timelineText: '#64748b', timelineTick: '#cbd5e1',
-                    gridLines: 'rgba(0, 0, 0, 0.08)', rowAltBg: 'rgba(0, 0, 0, 0.03)', cursorLine: 'rgba(0, 0, 0, 0.4)',
+                    gridLines: 'rgba(0, 0, 0, 0.08)', rowAltBg: 'rgba(0, 0, 0, 0.03)', 
+                    cursorLine: 'rgba(0,0,0,0.4)',
                     val1: '#059669', val1Fill: 'rgba(16, 185, 129, 0.15)', val0: '#059669',
                     valX: '#dc2626', valXFill: 'rgba(220, 38, 38, 0.1)', valZ: '#d97706',
                     valBus: '#2563eb', busTextVal: '#1e293b', busTextX: '#dc2626', anchor: '#d97706',
-                    deltaLine: 'rgba(79, 70, 229, 0.7)', deltaBg: '#e0e7ff', deltaText: '#4f46e5'
+                    deltaLine: 'rgba(79, 70, 229, 0.7)', deltaBg: '#e0e7ff', deltaText: '#4f46e5',
+                    dividerBg: '#e2e8f0', dividerText: '#475569', groupBg: '#f1f5f9', groupText: '#4f46e5'
                 };
             }
+        }
+
+        // Collapse Filtering Engine
+        function getFlatRenderList() {
+            let flat = [];
+            let hiddenGroupIds = new Set();
+            visibleSignals.forEach(item => {
+                if (item.type === 'group' && item.collapsed) {
+                    hiddenGroupIds.add(item.id);
+                }
+                if (item.parentGroupId && hiddenGroupIds.has(item.parentGroupId)) {
+                    return; 
+                }
+                flat.push(item);
+            });
+            return flat;
         }
 
         window.onload = () => {
@@ -393,26 +412,32 @@
                 document.getElementById('viewer-container').classList.remove('hidden');
                 parseVCD(vcdString);
                 
-                visibleSignals = [...parsedData.signals];
+                visibleSignals = parsedData.signals.map(s => ({ type: 'signal', signal: s, parentGroupId: null }));
                 document.getElementById('timescale-display').innerText = `Timescale: ${parsedData.timescale}`;
 
-                // --- CRITICAL FIX: Calculate scale BEFORE first render ---
                 let startingWidth = wrapper.clientWidth;
-                // Fallback in case DOM hasn't fully painted the width yet
                 if (startingWidth === 0) startingWidth = window.innerWidth - 340; 
                 
                 scale = (startingWidth - 50 - paddingX) / Math.max(1, parsedData.maxTime);
                 if (scale > 50) scale = 50;
-                // ---------------------------------------------------------
 
                 initRenderer();
                 setupSidebarResizer();
                 
-                // Double check layout after rendering is fully complete
-                requestAnimationFrame(() => {
-                    fitToScreen();
-                });
+                requestAnimationFrame(() => { fitToScreen(); });
             }
+        };
+
+        window.toggleFullPath = function(e) {
+            e.stopPropagation();
+            showFullPath = !showFullPath;
+            const btn = document.getElementById('btn-path-toggle');
+            if(showFullPath) {
+                btn.classList.add('bg-indigo-100', 'dark:bg-indigo-900', 'text-indigo-600', 'dark:text-indigo-400');
+            } else {
+                btn.classList.remove('bg-indigo-100', 'dark:bg-indigo-900', 'text-indigo-600', 'dark:text-indigo-400');
+            }
+            initRenderer();
         };
 
         // --- 2. VCD PARSER ---
@@ -483,7 +508,7 @@
             parsedData.timescale = timescale;
         }
 
-        // --- 3. FREQUENCY CALCULATOR ---
+        // --- 3. DELTA TIME ENGINE ---
         function getFrequencyString(deltaTicks) {
             if (deltaTicks === 0) return '';
             
@@ -523,15 +548,15 @@
             return `${val} ${timescaleUnit}`;
         }
 
-
-        // --- 4. SIDEBAR & INTERACTIVITY ---
+        // --- 4. SIDEBAR POLYMORPHIC RENDERER ---
         function initRenderer() {
             const namesContainer = document.getElementById('signal-names-container');
             namesContainer.innerHTML = '';
             
-            visibleSignals.forEach((sig, index) => {
+            const activeItems = getFlatRenderList();
+            
+            activeItems.forEach((item, index) => {
                 const div = document.createElement('div');
-                div.className = 'signal-item code-font';
                 div.draggable = true; 
                 
                 div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', index); div.classList.add('dragging'); };
@@ -543,30 +568,62 @@
                     div.classList.remove('drag-over');
                     const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
                     if (fromIdx !== index && !isNaN(fromIdx)) {
-                        const movedSig = visibleSignals.splice(fromIdx, 1)[0];
-                        visibleSignals.splice(index, 0, movedSig);
+                        const movedItem = activeItems[fromIdx];
+                        const targetItem = activeItems[index];
+                        const trueFrom = visibleSignals.indexOf(movedItem);
+                        const trueTarget = visibleSignals.indexOf(targetItem);
+                        
+                        const element = visibleSignals.splice(trueFrom, 1)[0];
+                        visibleSignals.splice(trueTarget, 0, element);
                         initRenderer(); 
                     }
                 };
 
-                const shortName = sig.name.split('.').pop();
-                const initVal = getValueAtTime(sig, hoverTime);
+                if (item.type === 'signal') {
+                    div.className = `signal-item code-font`;
+                    
+                    const sig = item.signal;
+                    const shortName = sig.name.split('.').pop();
+                    const displayName = showFullPath ? sig.name : shortName;
+                    const initVal = getValueAtTime(sig, hoverTime);
+                    const isIndented = item.parentGroupId ? 'pl-8' : 'pl-4';
 
-                div.innerHTML = `
-                    <div class="sig-name-container pointer-events-none">
-                        <span class="text-slate-300 dark:text-slate-600 mr-0.5 text-[10px] tracking-tighter" title="Drag to reorder">⋮⋮</span>
-                        <span class="text-slate-400 dark:text-slate-500 text-[10px] w-6 shrink-0">[${sig.size}]</span> 
-                        <span class="text-slate-800 dark:text-indigo-200 truncate font-semibold" title="${sig.name}">${shortName}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 pointer-events-auto">
-                        <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)} pointer-events-none">
-                            ${formatDisplayValue(initVal, sig.size)}
+                    div.innerHTML = `
+                        <div class="sig-name-container pointer-events-none ${isIndented}">
+                            <span class="text-slate-300 dark:text-slate-600 mr-0.5 text-[10px]" title="Drag row to sort">⋮⋮</span>
+                            <span class="text-slate-400 dark:text-slate-500 text-[9px] w-6 shrink-0">[${sig.size}]</span> 
+                            <span class="text-slate-800 dark:text-indigo-200 truncate font-semibold" title="${sig.name}">${displayName}</span>
                         </div>
-                        <button onclick="removeSignal(event, ${index})" class="remove-btn text-slate-400 hover:text-red-500 transition-colors ml-1 p-0.5" title="Hide Signal">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
-                    </div>
-                `;
+                        <div class="flex items-center gap-1.5 pointer-events-auto shrink-0">
+                            <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)} pointer-events-none ml-1">
+                                ${formatDisplayValue(initVal, sig.size)}
+                            </div>
+                            <button onclick="event.stopPropagation(); removeItem(${index})" class="remove-btn text-slate-400 hover:text-red-500 ml-1 p-0.5" title="Hide Trace">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                } else if (item.type === 'divider') {
+                    div.className = 'h-10 border-b border-slate-200 dark:border-[#1e293b] bg-slate-100/70 dark:bg-slate-900/60 flex items-center justify-between px-4 font-bold text-[11px] text-slate-500 dark:text-slate-400 tracking-wider uppercase';
+                    div.innerHTML = `
+                        <span class="truncate">${item.label}</span>
+                        <button onclick="removeItem(${index})" class="text-slate-400 hover:text-red-500 font-normal normal-case text-xs">Remove</button>
+                    `;
+                } else if (item.type === 'group') {
+                    div.className = 'h-10 border-b border-slate-200 dark:border-[#1e293b] bg-slate-200/50 dark:bg-slate-900 flex items-center justify-between px-4 font-bold text-xs text-indigo-600 dark:text-indigo-400';
+                    const symbol = item.collapsed ? '►' : '▼';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2 cursor-pointer" onclick="toggleGroupCollapse('${item.id}')">
+                            <span class="font-mono text-[10px]">${symbol}</span>
+                            <span class="tracking-wide uppercase text-[11px]">${item.label}</span>
+                        </div>
+                        <div class="flex items-center gap-2 font-normal text-xs">
+                            <button onclick="assignActiveGroup('${item.id}')" class="text-emerald-500 hover:underline text-[11px]">Add Inside</button>
+                            <span class="text-slate-300 dark:text-slate-700">|</span>
+                            <button onclick="removeItem(${index})" class="text-slate-400 hover:text-red-500 text-[11px]">Delete</button>
+                        </div>
+                    `;
+                }
                 namesContainer.appendChild(div);
             });
 
@@ -575,50 +632,92 @@
             });
 
             setupCanvasInteractions();
-            window.addEventListener('resize', draw);
-            
-            // First render execution
             draw();
         }
 
-        window.removeSignal = function(e, index) {
-            e.stopPropagation();
-            visibleSignals.splice(index, 1);
-            initRenderer();
+        window.removeItem = function(activeIndex) {
+            const activeItems = getFlatRenderList();
+            const targetItem = activeItems[activeIndex];
+            const realIdx = visibleSignals.indexOf(targetItem);
+            
+            if (realIdx !== -1) {
+                if(visibleSignals[realIdx].type === 'group') {
+                    const gid = visibleSignals[realIdx].id;
+                    visibleSignals.forEach(item => { if(item.parentGroupId === gid) item.parentGroupId = null; });
+                }
+                visibleSignals.splice(realIdx, 1);
+                initRenderer();
+            }
+        };
+
+        window.toggleGroupCollapse = function(groupId) {
+            const group = visibleSignals.find(i => i.type === 'group' && i.id === groupId);
+            if (group) {
+                group.collapsed = !group.collapsed;
+                initRenderer();
+            }
+        };
+
+        window.assignActiveGroup = function(groupId) {
+            const group = visibleSignals.find(i => i.type === 'group' && i.id === groupId);
+            const targetSigName = prompt(`Enter system signal name to attach inside Folder Group "${group.label}":`);
+            if(!targetSigName) return;
+
+            const sig = parsedData.signals.find(s => s.name.toLowerCase().endsWith(targetSigName.toLowerCase()));
+            if (sig) {
+                visibleSignals = visibleSignals.filter(item => !(item.type === 'signal' && item.signal === sig));
+                
+                const groupIndex = visibleSignals.indexOf(group);
+                visibleSignals.splice(groupIndex + 1, 0, { type: 'signal', signal: sig, parentGroupId: groupId });
+                initRenderer();
+            } else {
+                alert(`Signal "${targetSigName}" was not found inside trace definitions list.`);
+            }
         };
 
         window.showAddSignalMenu = function(e) {
             e.stopPropagation();
             const menu = document.getElementById('add-signal-menu');
             menu.innerHTML = '';
-            let hiddenCount = 0;
             
+            let dBtn = document.createElement('button');
+            dBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800';
+            dBtn.innerText = '+ Add Section Divider';
+            dBtn.onclick = () => {
+                let lbl = prompt("Enter Section Divider text label name:");
+                if(lbl) { visibleSignals.push({ type: 'divider', id: 'div_' + Date.now(), label: lbl }); initRenderer(); }
+            };
+            menu.appendChild(dBtn);
+
+            let gBtn = document.createElement('button');
+            gBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800';
+            gBtn.innerText = '+ Create Folder Group';
+            gBtn.onclick = () => {
+                let lbl = prompt("Enter Folder Group name:");
+                if(lbl) { visibleSignals.push({ type: 'group', id: 'grp_' + Date.now(), label: lbl, collapsed: false }); initRenderer(); }
+            };
+            menu.appendChild(gBtn);
+
             parsedData.signals.forEach(sig => {
-                if (!visibleSignals.includes(sig)) {
-                    hiddenCount++;
+                const isMapped = visibleSignals.some(item => item.type === 'signal' && item.signal === sig);
+                if (!isMapped) {
                     const btn = document.createElement('button');
-                    btn.className = 'block w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-200 transition-colors';
-                    btn.innerText = sig.name.split('.').pop();
+                    btn.className = 'block w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs text-slate-700 dark:text-slate-200 truncate font-mono';
+                    btn.innerText = `sig: ${sig.name.split('.').pop()}`;
                     btn.onclick = () => {
-                        visibleSignals.push(sig);
-                        menu.classList.add('hidden');
+                        visibleSignals.push({ type: 'signal', signal: sig, parentGroupId: null });
                         initRenderer();
                     };
                     menu.appendChild(btn);
                 }
             });
 
-            if (hiddenCount === 0) {
-                menu.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500 text-center italic">All signals visible</div>';
-            }
             menu.classList.remove('hidden');
         };
 
         window.hideAddSignalMenu = function() {
             const menu = document.getElementById('add-signal-menu');
-            if (menu && !menu.classList.contains('hidden')) {
-                menu.classList.add('hidden');
-            }
+            if (menu && !menu.classList.contains('hidden')) menu.classList.add('hidden');
         };
 
         window.changeGlobalRadix = function(newRadix) {
@@ -639,19 +738,13 @@
                     let hexChars = Math.ceil(size / 4);
                     return 'h' + parseInt(paddedVal, 2).toString(16).toUpperCase().padStart(hexChars, '0');
                 }
-                if (globalRadix === 'udec') {
-                    return parseInt(paddedVal, 2).toString(10);
-                }
+                if (globalRadix === 'udec') return parseInt(paddedVal, 2).toString(10);
                 if (globalRadix === 'sdec') {
                     let num = parseInt(paddedVal, 2);
-                    if (paddedVal[0] === '1') {
-                        num = num - Math.pow(2, size);
-                    }
+                    if (paddedVal[0] === '1') num = num - Math.pow(2, size);
                     return num.toString(10);
                 }
-                if (globalRadix === 'bin') {
-                    return 'b' + paddedVal;
-                }
+                if (globalRadix === 'bin') return 'b' + paddedVal;
                 if (globalRadix === 'oct') {
                     let octChars = Math.ceil(size / 3);
                     return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
@@ -723,12 +816,7 @@
             };
             
             wrapper.onmouseup = () => { isPanning = false; wrapper.style.cursor = 'crosshair'; };
-            
-            wrapper.onmouseleave = () => { 
-                isPanning = false; 
-                wrapper.style.cursor = 'crosshair'; 
-                cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
-            };
+            wrapper.onmouseleave = () => { isPanning = false; wrapper.style.cursor = 'crosshair'; };
 
             wrapper.onmousemove = (e) => {
                 if (isPanning) {
@@ -744,8 +832,8 @@
                 hoverTime = Math.max(0, Math.min(Math.round(rawTime), parsedData.maxTime));
                 
                 document.getElementById('cursor-time-display').innerText = getDeltaTimeText(hoverTime);
-                drawCursor();
                 updateSidebarValues();
+                drawCursor();
             };
 
             wrapper.onclick = (e) => {
@@ -762,17 +850,19 @@
         }
 
         function updateSidebarValues() {
-            visibleSignals.forEach((sig, index) => {
-                const val = getValueAtTime(sig, hoverTime);
+            const activeItems = getFlatRenderList();
+            activeItems.forEach((item, index) => {
+                if (item.type !== 'signal') return;
+                const val = getValueAtTime(item.signal, hoverTime);
                 const badge = document.getElementById(`val-badge-${index}`);
                 if (badge) {
-                    badge.innerText = formatDisplayValue(val, sig.size);
-                    badge.className = `sig-val ${getValueClass(val, sig.size)} pointer-events-none`;
+                    badge.innerText = formatDisplayValue(val, item.signal.size);
+                    badge.className = `sig-val ${getValueClass(val, item.signal.size)} pointer-events-none`;
                 }
             });
         }
 
-        // --- 6. RENDER ENGINE ---
+        // --- 6. CANVAS CORE RENDER ENGINE ---
         function zoom(factor) {
             scale *= factor;
             if (scale < 0.000001) scale = 0.000001; 
@@ -792,7 +882,6 @@
         function getDynamicTickInterval(currentScale) {
             const targetTimePerTick = 100 / currentScale;
             if (targetTimePerTick <= 1) return 1;
-            
             const mag = Math.pow(10, Math.floor(Math.log10(targetTimePerTick)));
             const normalized = targetTimePerTick / mag;
             
@@ -803,8 +892,9 @@
         }
 
         function draw() {
+            const activeItems = getFlatRenderList();
             const width = Math.max(wrapper.clientWidth, paddingX + parsedData.maxTime * scale + 50);
-            const height = visibleSignals.length * rowHeight;
+            const height = activeItems.length * rowHeight;
 
             waveCanvas.width = width; waveCanvas.height = height;
             cursorCanvas.width = width; cursorCanvas.height = height;
@@ -846,7 +936,7 @@
             const height = cursorCanvas.height;
             cursorCtx.clearRect(0, 0, width, height);
 
-            if (hoverTime >= 0 && hoverTime <= parsedData.maxTime) {
+            if (hoverTime !== null && hoverTime >= 0 && hoverTime <= parsedData.maxTime) {
                 const hX = paddingX + hoverTime * scale;
                 cursorCtx.beginPath();
                 cursorCtx.moveTo(hX, 0); cursorCtx.lineTo(hX, height);
@@ -863,13 +953,8 @@
                 cursorCtx.strokeStyle = theme.anchor;
                 cursorCtx.lineWidth = 1.5;
                 cursorCtx.stroke();
-                
-                cursorCtx.fillStyle = theme.anchor;
-                cursorCtx.beginPath();
-                cursorCtx.arc(aX, 0, 4, 0, Math.PI * 2);
-                cursorCtx.fill();
 
-                if (hoverTime !== anchorTime && hoverTime >= 0) {
+                if (hoverTime !== anchorTime && hoverTime !== null) {
                     const hX = paddingX + hoverTime * scale;
                     const deltaTicks = Math.abs(hoverTime - anchorTime);
                     const midX = Math.min(aX, hX) + Math.abs(aX - hX) / 2;
@@ -899,28 +984,34 @@
 
         function drawWaveforms(width, height) {
             const theme = getColors();
+            const activeItems = getFlatRenderList();
             waveCtx.clearRect(0, 0, width, height);
             
-            waveCtx.strokeStyle = theme.gridLines;
-            waveCtx.lineWidth = 1;
-            
-            for(let i = 0; i < visibleSignals.length; i++) {
+            activeItems.forEach((item, i) => {
+                if (item.type === 'divider') {
+                    waveCtx.fillStyle = theme.dividerBg;
+                    waveCtx.fillRect(0, i * rowHeight, width, rowHeight);
+                    return;
+                }
+                if (item.type === 'group') {
+                    waveCtx.fillStyle = theme.groupBg;
+                    waveCtx.fillRect(0, i * rowHeight, width, rowHeight);
+                    return;
+                }
+
                 if (i % 2 === 1) {
                     waveCtx.fillStyle = theme.rowAltBg;
                     waveCtx.fillRect(0, i * rowHeight, width, rowHeight);
                 }
+                
+                waveCtx.strokeStyle = theme.gridLines;
+                waveCtx.lineWidth = 1;
                 waveCtx.beginPath();
                 waveCtx.moveTo(0, i * rowHeight); waveCtx.lineTo(width, i * rowHeight);
                 waveCtx.stroke();
-            }
-            
-            waveCtx.beginPath();
-            waveCtx.moveTo(0, visibleSignals.length * rowHeight); 
-            waveCtx.lineTo(width, visibleSignals.length * rowHeight);
-            waveCtx.stroke();
+            });
 
             let tickInterval = getDynamicTickInterval(scale);
-
             waveCtx.strokeStyle = theme.gridLines;
             for (let t = 0; t <= parsedData.maxTime; t += tickInterval) {
                 const x = paddingX + t * scale;
@@ -929,7 +1020,10 @@
                 waveCtx.stroke();
             }
 
-            visibleSignals.forEach((sig, index) => {
+            activeItems.forEach((item, index) => {
+                if (item.type !== 'signal') return;
+                const sig = item.signal;
+                
                 const yTop = index * rowHeight + paddingY;
                 const yBottom = yTop + waveHeight;
                 const yMid = yTop + waveHeight / 2;
@@ -1017,6 +1111,100 @@
                 }
             });
         }
+
+        // --- 7. HIGH-DEFINITION PNG EXPORT CANVAS ENGINE ---
+        window.exportWaveformPNG = function() {
+            const activeItems = getFlatRenderList();
+            const sidebarWidth = parseInt(document.getElementById('signal-list').style.width) || 340;
+            const canvasW = waveCanvas.width;
+            const totalW = sidebarWidth + canvasW;
+            const totalH = Math.max(timeCanvas.height + waveCanvas.height, 120);
+
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = totalW;
+            exportCanvas.height = totalH;
+            const exCtx = exportCanvas.getContext('2d');
+            const theme = getColors();
+
+            exCtx.fillStyle = isDarkMode ? '#020617' : '#ffffff';
+            exCtx.fillRect(0, 0, totalW, totalH);
+
+            exCtx.drawImage(timeCanvas, sidebarWidth, 0);
+            exCtx.drawImage(waveCanvas, sidebarWidth, 32);
+            exCtx.drawImage(cursorCanvas, sidebarWidth, 32);
+
+            exCtx.fillStyle = isDarkMode ? '#0f172a' : '#f8fafc';
+            exCtx.fillRect(0, 0, sidebarWidth, totalH);
+            exCtx.strokeStyle = isDarkMode ? '#1e293b' : '#e2e8f0';
+            exCtx.lineWidth = 1;
+            exCtx.beginPath();
+            exCtx.moveTo(sidebarWidth, 0); exCtx.lineTo(sidebarWidth, totalH);
+            exCtx.stroke();
+
+            exCtx.fillStyle = isDarkMode ? '#1e293b' : '#f1f5f9';
+            exCtx.fillRect(0, 0, sidebarWidth, 32);
+            exCtx.fillStyle = isDarkMode ? '#94a3b8' : '#64748b';
+            exCtx.font = 'bold 10px "Inter", sans-serif';
+            exCtx.textBaseline = 'middle';
+            exCtx.fillText("SIGNAL CONFIGURATION MATRIX", 16, 16);
+
+            activeItems.forEach((item, idx) => {
+                const rowY = 32 + idx * rowHeight;
+                
+                if (item.type === 'divider') {
+                    exCtx.fillStyle = theme.dividerBg;
+                    exCtx.fillRect(0, rowY, sidebarWidth, rowHeight);
+                    exCtx.fillStyle = theme.dividerText;
+                    exCtx.font = 'bold 10px "Inter", sans-serif';
+                    exCtx.fillText(item.label.toUpperCase(), 16, rowY + rowHeight/2);
+                    return;
+                }
+                if (item.type === 'group') {
+                    exCtx.fillStyle = theme.groupBg;
+                    exCtx.fillRect(0, rowY, sidebarWidth, rowHeight);
+                    exCtx.fillStyle = theme.groupText;
+                    exCtx.font = 'bold 11px "Inter", sans-serif';
+                    const sym = item.collapsed ? '► ' : '▼ ';
+                    exCtx.fillText(sym + item.label.toUpperCase(), 16, rowY + rowHeight/2);
+                    return;
+                }
+
+                if (idx % 2 === 1) {
+                    exCtx.fillStyle = isDarkMode ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0.02)';
+                    exCtx.fillRect(0, rowY, sidebarWidth, rowHeight);
+                }
+
+                exCtx.strokeStyle = isDarkMode ? '#1e293b' : '#e2e8f0';
+                exCtx.beginPath();
+                exCtx.moveTo(0, rowY + rowHeight); exCtx.lineTo(sidebarWidth, rowY + rowHeight);
+                exCtx.stroke();
+
+                const indent = item.parentGroupId ? 16 : 0;
+                const shortName = item.signal.name.split('.').pop();
+                const displayName = showFullPath ? item.signal.name : shortName;
+
+                exCtx.fillStyle = isDarkMode ? '#64748b' : '#94a3b8';
+                exCtx.font = '9px "Fira Code"';
+                exCtx.fillText(`[${item.signal.size}]`, 16 + indent, rowY + rowHeight/2);
+
+                exCtx.fillStyle = isDarkMode ? '#e2e8f0' : '#0f172a';
+                exCtx.font = 'bold 12px "Inter", sans-serif';
+                exCtx.fillText(displayName, 42 + indent, rowY + rowHeight/2);
+
+                const val = getValueAtTime(item.signal, hoverTime);
+                const displayVal = formatDisplayValue(val, item.signal.size);
+                exCtx.fillStyle = isDarkMode ? '#3b82f6' : '#2563eb';
+                exCtx.font = 'bold 12px "Fira Code"';
+                exCtx.textAlign = 'right';
+                exCtx.fillText(displayVal, sidebarWidth - 16, rowY + rowHeight/2);
+                exCtx.textAlign = 'left';
+            });
+
+            const dLink = document.createElement('a');
+            dLink.download = `logicsilicon_wave_report_${Date.now()}.png`;
+            dLink.href = exportCanvas.toDataURL('image/png');
+            dLink.click();
+        };
     </script>
 </body>
 </html>
