@@ -284,10 +284,9 @@
                     </div>
                 </div>
 
-<a href="docs.html" target="_blank" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center justify-center w-5 h-5" title="Help & Documentation">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-</a>
-
+                <a href="docs.html" target="_blank" class="text-slate-400 hover:text-indigo-500 dark:text-slate-500 dark:hover:text-indigo-400 transition-colors flex items-center justify-center w-5 h-5" title="Help & Documentation">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </a>
 
                 <button onclick="openRTLViewer(); event.stopPropagation();" id="btn-rtl" class="flex items-center gap-2 px-4 py-1.5 rounded-md bg-sky-600 hover:bg-sky-500 text-white text-[13px] font-bold shadow-[0_2px_10px_rgba(14,165,233,0.3)] transition-all transform hover:-translate-y-[1px]" title="Shortcut: Ctrl+Shift+Enter">
                     👁️ RTL Schematic
@@ -369,6 +368,11 @@
                             Waveform (.VCD)
                         </button>
                         
+                        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+                        <button onclick="downloadTerminalTXT()" class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest bg-slate-200/50 dark:bg-slate-800 px-3 py-1 rounded" title="Download logs as plain text">TXT</button>
+                        <button onclick="downloadTerminalPNG()" class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest bg-slate-200/50 dark:bg-slate-800 px-3 py-1 rounded" title="Export logs as an image snippet">PNG</button>
+                        
+                        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
                         <button onclick="clearTerminal()" class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest bg-slate-200/50 dark:bg-slate-800 px-3 py-1 rounded">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             Clear
@@ -487,6 +491,54 @@ Write your design and testbench, then click 'Run Code'.</span>
                 code: `<span style="color:#569cd6">module</span> tb();<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> clk, rst;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">logic</span> [<span style="color:#b5cea8">3</span>:<span style="color:#b5cea8">0</span>] q;<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;counter dut(.*);<br/><br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">initial begin</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpfile</span>(<span style="color:#ce9178">"waves.vcd"</span>);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#dcdcaa">$dumpvars</span>(<span style="color:#b5cea8">0</span>, tb);<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clk = <span style="color:#b5cea8">0</span>; rst = <span style="color:#b5cea8">1</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#20</span> rst = <span style="color:#b5cea8">0</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#b5cea8">#200</span> <span style="color:#dcdcaa">$finish</span>;<br/>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#569cd6">end</span><br/><span style="color:#569cd6">endmodule</span>`
             }
         ];
+
+        // =========================================================
+        // TERMINAL EXPORT LOGIC
+        // =========================================================
+        window.downloadTerminalTXT = function() {
+            const terminalEl = document.getElementById('terminal-output');
+            const content = terminalEl.innerText;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ls_terminal_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.downloadTerminalPNG = function() {
+            const terminalEl = document.getElementById('terminal-output');
+            const lines = terminalEl.innerText.split('\n');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.font = '14px "Fira Code", monospace';
+            let maxWidth = 0;
+            lines.forEach(line => {
+                const w = ctx.measureText(line).width;
+                if(w > maxWidth) maxWidth = w;
+            });
+            
+            canvas.width = Math.max(800, maxWidth + 60);
+            canvas.height = lines.length * 22 + 40;
+            
+            ctx.fillStyle = isDarkMode ? '#0d0d0d' : '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = isDarkMode ? '#d4d4d4' : '#1e293b';
+            ctx.font = '14px "Fira Code", monospace';
+            ctx.textBaseline = 'top';
+            
+            lines.forEach((line, i) => {
+                ctx.fillText(line, 20, 20 + (i * 22));
+            });
+            
+            const a = document.createElement('a');
+            a.download = `ls_terminal_${Date.now()}.png`;
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        };
 
         // =========================================================
         // NATIVE PROJECT MANAGER (FILE SYSTEM API)
@@ -796,6 +848,13 @@ Write your design and testbench, then click 'Run Code'.</span>
                     } else {
                         runSimulation(); 
                     }
+                    return;
+                }
+                
+                // NEW: Open Waveform Viewer Shortcut
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === '+' || e.key === '=')) {
+                    e.preventDefault();
+                    openWaveformViewer();
                     return;
                 }
 
