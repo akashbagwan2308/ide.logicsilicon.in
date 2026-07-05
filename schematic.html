@@ -10,6 +10,7 @@
         tailwind.config = { darkMode: 'class' }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
     <style>
@@ -75,8 +76,13 @@
             <button onclick="fitCanvas()" class="px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-colors" title="Fit to Screen">⛶ Fit</button>
             
             <button onclick="toggleTheme()" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-[#334155] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors ml-1" title="Toggle Theme">🌓</button>
+            
             <button onclick="triggerSynthesis()" class="ml-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2">
                 ⚡ Resync
+            </button>
+
+            <button onclick="arrangeWithElk()" id="btn-arrange" class="ml-2 px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2">
+                ✨ Arrange
             </button>
 
             <button onclick="toggleTBView()" id="btn-toggle-tb" class="ml-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2">
@@ -150,18 +156,21 @@
         // ==========================================
         // 1. STATE & HIGH CONTRAST THEME
         // ==========================================
+        const elk = new ELK();
+        
         let isDarkMode = true;
         let showTestbench = false; 
         let editorInstance = null;
         let isEditorVisible = false;
-        let dagGraph = null; 
+        
         let fullNetlist = null;
         let hierarchyStack = [];
+        let currentRawGraph = null;
+        let activeGraph = null;
         
         let parsedVCD = null;
         let currentTime = 0;
         
-        // AUTO-PLAYER STATE
         let isPlaying = false;
         let playInterval = null;
 
@@ -173,10 +182,7 @@
         let panX = 100, panY = 100, scale = 1;
         let hoveredNode = null;
         let selectedNode = null; 
-
         let hoveredEdge = null;
-        let draggedEdge = null;
-        let dragEdgeStartOffset = 0;
 
         function getColors() {
             return isDarkMode ? {
@@ -193,10 +199,10 @@
                 pin: '#f8fafc',         
                 selected: '#fde047',    
                 frameFill: 'rgba(15, 23, 42, 0.4)',
-                val1: '#3b82f6', // Blue 500
-                val0: '#94a3b8', // Slate 400
-                valX: '#ef4444', // Red 500
-                valZ: '#eab308'  // Amber 500
+                val1: '#3b82f6', 
+                val0: '#94a3b8', 
+                valX: '#ef4444', 
+                valZ: '#eab308'  
             } : {
                 bg: '#ffffff', 
                 nodeBg: '#ffffff', 
@@ -211,10 +217,10 @@
                 pin: '#334155',
                 selected: '#eab308',    
                 frameFill: 'rgba(241, 245, 249, 0.6)',
-                val1: '#2563eb', // Blue 600
-                val0: '#475569', // Slate 600
-                valX: '#dc2626', // Red 600
-                valZ: '#d97706'  // Amber 600
+                val1: '#2563eb', 
+                val0: '#475569', 
+                valX: '#dc2626', 
+                valZ: '#d97706'  
             };
         }
 
@@ -249,7 +255,7 @@
             }, 10);
         }
 
-        window.toggleTBView = () => {
+        window.toggleTBView = async () => {
             showTestbench = !showTestbench;
             const btn = document.getElementById('btn-toggle-tb');
             const timeWidget = document.getElementById('bottom-time-widget');
@@ -262,9 +268,7 @@
                     timeWidget.classList.add('flex');
                 }
             } else {
-                // Auto-pause if hiding the widget
                 if (isPlaying) window.togglePlay();
-
                 btn.innerHTML = '🧪 View with TB';
                 btn.className = 'ml-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors shadow-md flex items-center gap-2';
                 timeWidget.classList.add('hidden');
@@ -273,9 +277,7 @@
 
             if (fullNetlist) {
                 const targetMod = hierarchyStack.length > 0 ? hierarchyStack[hierarchyStack.length - 1] : null;
-                dagGraph = buildGraphFromYosys(fullNetlist, targetMod);
-                selectedNode = null; hoveredEdge = null; draggedEdge = null;
-                fitCanvas();
+                processLayout(targetMod);
             }
         };
 
@@ -293,17 +295,16 @@
                 iconPlay.classList.add('hidden');
                 iconPause.classList.remove('hidden');
                 
-                // If at the end, restart from 0
                 if (currentTime >= parsedVCD.maxTime) {
                     updateTime(0);
                 }
 
                 playInterval = setInterval(() => {
-                    let moved = window.nextTransition(null, true); // true = called from autoPlay
+                    let moved = window.nextTransition(null, true);
                     if (!moved || currentTime >= parsedVCD.maxTime) {
-                        window.togglePlay(); // Auto stop at the end
+                        window.togglePlay();
                     }
-                }, 1500); // Step every 1.5s
+                }, 1500);
             } else {
                 iconPlay.classList.remove('hidden');
                 iconPause.classList.add('hidden');
@@ -313,7 +314,7 @@
         };
 
         window.manualTimeUpdate = function(val) {
-            if (isPlaying) window.togglePlay(); // Pause if user touches slider manually
+            if (isPlaying) window.togglePlay();
             updateTime(val);
         };
 
@@ -326,7 +327,7 @@
 
         window.prevTransition = function(e) {
             if(e) e.stopPropagation();
-            if (isPlaying) window.togglePlay(); // Pause if user overrides
+            if (isPlaying) window.togglePlay();
             if (!parsedVCD) return;
             
             let target = 0;
@@ -345,7 +346,7 @@
 
         window.nextTransition = function(e, fromAutoPlay = false) {
             if(e) e.stopPropagation();
-            if (isPlaying && !fromAutoPlay) window.togglePlay(); // Pause if user overrides manually
+            if (isPlaying && !fromAutoPlay) window.togglePlay(); 
             
             if (!parsedVCD) return false;
             let target = parsedVCD.maxTime;
@@ -367,8 +368,6 @@
         // ==========================================
         window.onload = () => {
             const passedCode = sessionStorage.getItem('ls_rtl_code') || "// Paste your Verilog code here";
-
-            // GUARANTEE VCD PARSING IMMEDIATELY ON LOAD
             const vcdData = sessionStorage.getItem('ls_last_vcd');
             if (vcdData) parseVCD(vcdData);
 
@@ -493,7 +492,6 @@
             parsedVCD.maxTime = maxT;
         }
 
-        // Updated function dynamically handles array string suffix resolution
         function getNodeValueFormatted(node, indexString = "") {
             if (!parsedVCD || !node.baseName) return null;
             
@@ -540,6 +538,87 @@
             return { val: currentVal, size: targetSize };
         }
 
+        // =========================================================
+        // DUAL LAYOUT ENGINE MANAGER
+        // =========================================================
+
+        function processLayout(targetMod) {
+            document.getElementById('render-status').innerText = 'Rendering...';
+            
+            try {
+                // Always build the fresh generic Graph Data
+                currentRawGraph = buildGraphData(fullNetlist, targetMod);
+                
+                // Set default layout to Dagre
+                applyDagreLayout(currentRawGraph);
+
+                selectedNode = null; 
+                hoveredEdge = null;
+                updateBreadcrumbUI();
+                
+                document.getElementById('render-status').innerText = 'SYNCED';
+                document.getElementById('render-status').className = 'absolute right-4 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-400/20';
+            } catch(e) {
+                console.error("Layout Error:", e);
+                document.getElementById('render-status').innerText = 'Layout Error';
+            }
+        }
+
+        function applyDagreLayout(baseData) {
+            if (!baseData) return;
+            const g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
+            g.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 100, edgesep: 30 });
+            g.setDefaultEdgeLabel(() => ({}));
+
+            baseData.children.forEach(n => {
+                g.setNode(n.id, { width: n.width, height: n.height });
+            });
+            
+            baseData.edges.forEach(e => {
+                g.setEdge(e.vcdData.srcNodeName, e.vcdData.tgtNodeName, {}, e.id);
+            });
+
+            dagre.layout(g);
+
+            baseData.children.forEach(n => {
+                const dn = g.node(n.id);
+                n.x = dn.x - n.width/2;
+                n.y = dn.y - n.height/2;
+                n.origX = n.x;
+                n.origY = n.y;
+            });
+
+            baseData.edges.forEach(e => {
+                e.sections = null; 
+                e.customOffset = 0;
+            });
+
+            activeGraph = baseData;
+            fitCanvas();
+        }
+
+        async function arrangeWithElk() {
+            if (!currentRawGraph) return;
+            const btn = document.getElementById('btn-arrange');
+            const oldText = btn.innerHTML;
+            btn.innerHTML = '⏳ Computing...';
+            document.getElementById('render-status').innerText = 'Arranging...';
+            
+            try {
+                const layouted = await elk.layout(currentRawGraph);
+                layouted.children.forEach(n => { n.origX = n.x; n.origY = n.y; });
+                activeGraph = layouted;
+                fitCanvas();
+                document.getElementById('render-status').innerText = 'ARRANGED (ELK)';
+            } catch(e) {
+                console.error(e);
+                alert("Auto-arrange failed.");
+                document.getElementById('render-status').innerText = 'SYNCED';
+            } finally {
+                btn.innerHTML = oldText;
+            }
+        }
+
         async function triggerSynthesis() {
             const code = editorInstance ? editorInstance.getValue() : (sessionStorage.getItem('ls_rtl_code') || "");
             const statusEl = document.getElementById('render-status');
@@ -577,13 +656,8 @@
                 if (data.status === "success") {
                     fullNetlist = data.netlist;
                     hierarchyStack = []; 
-                    selectedNode = null; 
-                    dagGraph = buildGraphFromYosys(fullNetlist, null);
                     
-                    statusEl.innerText = 'SYNCED';
-                    statusEl.className = 'absolute right-4 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-400/20';
-                    updateBreadcrumbUI();
-                    fitCanvas();
+                    processLayout(null);
 
                     const timeWidget = document.getElementById('bottom-time-widget');
                     if (parsedVCD) {
@@ -603,7 +677,6 @@
                         timeWidget.classList.add('hidden');
                         timeWidget.classList.remove('flex');
                     }
-                    renderGraph();
                 } else {
                     throw new Error(data.details || data.error || "Backend Synthesis Failed");
                 }
@@ -631,10 +704,7 @@
                 btn.innerText = mod;
                 btn.onclick = () => {
                     hierarchyStack = hierarchyStack.slice(0, idx); 
-                    dagGraph = buildGraphFromYosys(fullNetlist, mod);
-                    selectedNode = null; hoveredEdge = null; draggedEdge = null;
-                    updateBreadcrumbUI();
-                    fitCanvas();
+                    processLayout(mod);
                 };
                 container.appendChild(btn);
                 
@@ -651,24 +721,18 @@
             if (hierarchyStack.length > 1) {
                 hierarchyStack.pop(); 
                 const parentMod = hierarchyStack.pop(); 
-                dagGraph = buildGraphFromYosys(fullNetlist, parentMod);
-                selectedNode = null; hoveredEdge = null; draggedEdge = null;
-                updateBreadcrumbUI();
-                fitCanvas();
+                processLayout(parentMod);
             }
         };
 
         window.navigateDown = () => {
             const targetNodeId = selectedNode || hoveredNode;
-            if (targetNodeId && dagGraph && fullNetlist) {
-                const node = dagGraph.node(targetNodeId);
-                if (node.type === 'instance') {
+            if (targetNodeId && activeGraph && fullNetlist) {
+                const node = activeGraph.children.find(c => c.id === targetNodeId);
+                if (node && node.type === 'instance') {
                     const modType = node.exactModuleType;
                     if (fullNetlist.modules[modType]) {
-                        dagGraph = buildGraphFromYosys(fullNetlist, modType);
-                        selectedNode = null; hoveredEdge = null; draggedEdge = null;
-                        updateBreadcrumbUI();
-                        fitCanvas();
+                        processLayout(modType);
                     } else {
                         alert("No internal hierarchy available for primitive: " + modType);
                     }
@@ -695,7 +759,6 @@
                     const namePart = decl.split('=')[0].trim();
                     if (!namePart) return;
 
-                    // Match base variable name AND dynamically capture any unpacked dimensions [1:2] [1:0]
                     const memMatch = namePart.match(/^([a-zA-Z0-9_]+)((?:\s*\[\d+(?::\d+)?\])+)?$/);
                     
                     if (memMatch) {
@@ -743,32 +806,42 @@
                 });
             }
 
-            const instRegex = new RegExp(`${topModuleName}\\s+\\w+\\s*\\(([\\s\\S]*?)\\);`, 'g');
+            const instRegex = new RegExp(`${topModuleName}\\s*(?:#\\s*\\([\\s\\S]*?\\))?\\s+\\w+\\s*\\(([\\s\\S]*?)\\);`, 'g');
             const instMatch = instRegex.exec(tbCode);
 
             if (instMatch) {
                 const portMapString = instMatch[1];
-                if (portMapString.trim() === '.*') {
-                    return { type: 'implicit', variables };
-                }
-
-                const portRegex = /\.\s*(\w+)\s*\(\s*([^)\s]+)\s*\)/g;
-                let portMatch;
-                while ((portMatch = portRegex.exec(portMapString)) !== null) {
-                    connections.push({
-                        port: portMatch[1],
-                        variable: portMatch[2]
-                    });
+                
+                const isExplicit = portMapString.includes('.');
+                
+                if (isExplicit) {
+                    if (portMapString.trim() === '.*') {
+                        return { type: 'implicit', variables };
+                    }
+                    const portRegex = /\.\s*(\w+)\s*\(\s*([^)\s]+)\s*\)/g;
+                    let portMatch;
+                    while ((portMatch = portRegex.exec(portMapString)) !== null) {
+                        connections.push({
+                            port: portMatch[1],
+                            variable: portMatch[2]
+                        });
+                    }
+                } else {
+                    const args = portMapString.split(',').map(s => s.trim());
+                    return { type: 'positional', args, variables };
                 }
             }
 
             return { type: 'explicit', connections, variables };
         }
 
-        function buildGraphFromYosys(netlist, targetModule) {
-            const g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
-            g.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 100, edgesep: 30 }); 
-            g.setDefaultEdgeLabel(() => ({}));
+        // =========================================================
+        // RAW GRAPH BUILDER
+        // =========================================================
+        function buildGraphData(netlist, targetModule) {
+            const nodesMap = {};
+            const edgesList = [];
+            let edgeCounter = 0;
 
             const modules = Object.keys(netlist.modules);
             if (modules.length === 0) throw new Error("No modules found in netlist");
@@ -776,7 +849,7 @@
             let topModuleName = targetModule;
             
             if (!topModuleName) {
-                topModuleName = modules.find(m =>netlist.modules[m].attributes?.top !== undefined);
+                topModuleName = modules.find(m => netlist.modules[m].attributes?.top !== undefined);
                 if (!topModuleName) {
                     const instantiated = new Set();
                     modules.forEach(m => {
@@ -807,47 +880,59 @@
                 hierarchyStack.push(topModuleName);
             }
             
-            g.graph().name = topModuleName.replace('\\', ''); 
-
             const isTopLevel = (hierarchyStack.length <= 1);
             const includeTB = showTestbench && isTopLevel;
 
-            const tbCode = sessionStorage.getItem('ls_tb_code') || ""; 
+            let tbCode = sessionStorage.getItem('ls_tb_code') || ""; 
+            if (!tbCode || tbCode.trim() === "" || tbCode.includes("// Paste")) {
+                tbCode = sessionStorage.getItem('ls_rtl_code') || "";
+            }
+
             const tbData = parseTestbenchRTL(tbCode, topModuleName.replace('\\', ''));
 
             const mod = netlist.modules[topModuleName];
             const bitDrivers = {}; 
             const placedTbVars = new Set(); 
 
+            function addEdge(srcNode, srcIdx, tgtNode, tgtIdx) {
+                edgesList.push({
+                    id: `e_${edgeCounter++}`,
+                    sources: [`${srcNode}_out_${srcIdx}`],
+                    targets: [`${tgtNode}_in_${tgtIdx}`],
+                    vcdData: { srcNodeName: srcNode, tgtNodeName: tgtNode, srcPortIdx: srcIdx, tgtPortIdx: tgtIdx },
+                    customOffset: 0
+                });
+            }
+
+            function addNode(id, data) {
+                let ports = [];
+                if (data.inPorts) data.inPorts.forEach((p, i) => ports.push({id: `${id}_in_${i}`, properties: {'port.side': 'WEST', 'port.index': i}}));
+                if (data.outPorts) data.outPorts.forEach((p, i) => ports.push({id: `${id}_out_${i}`, properties: {'port.side': 'EAST', 'port.index': i}}));
+                nodesMap[id] = { id: id, ports: ports, ...data };
+            }
+
             if (mod.ports) {
+                let portIndex = 0;
                 for (const [portName, portData] of Object.entries(mod.ports)) {
                     const isInput = portData.direction === "input";
                     let portLabel = portName.replace('\\', '');
                     
                     const dynamicWidth = Math.max(50, portLabel.length * 8 + 20);
                     const isPortVector = portData.bits && portData.bits.length > 1;
+                    
+                    const portArr = isPortVector ? portData.bits.map((_, i) => `${portName}_${i}`) : [portName];
 
                     if (isPortVector) {
-                        g.setNode(portName, {
-                            label: `[${portData.bits.length - 1}:0] ${portLabel}`,
-                            baseName: portLabel,
-                            type: isInput ? 'input' : 'output',
-                            isVector: true, numBits: portData.bits.length,
-                            width: Math.max(dynamicWidth, portData.bits.length * 20), height: 36,
-                            inPorts: isInput ? [] : portData.bits.map((_, i) => `${portName}_${i}`),
-                            outPorts: isInput ? portData.bits.map((_, i) => `${portName}_${i}`) : [],
-                            flipH: false, flipV: false
+                        addNode(portName, {
+                            label: `[${portData.bits.length - 1}:0] ${portLabel}`, baseName: portLabel, type: isInput ? 'input' : 'output',
+                            isVector: true, numBits: portData.bits.length, width: Math.max(dynamicWidth, portData.bits.length * 20), height: 36,
+                            inPorts: portArr, outPorts: portArr, flipH: false, flipV: false
                         });
                     } else {
-                        g.setNode(portName, {
-                            label: portLabel,
-                            baseName: portLabel,
-                            type: isInput ? 'input' : 'output',
-                            isVector: false,
-                            width: dynamicWidth, height: 36,
-                            inPorts: isInput ? [] : [portName],
-                            outPorts: isInput ? [portName] : [],
-                            flipH: false, flipV: false
+                        addNode(portName, {
+                            label: portLabel, baseName: portLabel, type: isInput ? 'input' : 'output',
+                            isVector: false, width: dynamicWidth, height: 36,
+                            inPorts: portArr, outPorts: portArr, flipH: false, flipV: false
                         });
                     }
 
@@ -856,6 +941,8 @@
                         if (tbData.type === 'explicit') {
                             const explicitMap = tbData.connections.find(c => c.port === portLabel);
                             if (explicitMap) connectedVarName = explicitMap.variable;
+                        } else if (tbData.type === 'positional') {
+                            if (portIndex < tbData.args.length) connectedVarName = tbData.args[portIndex];
                         }
 
                         const tbVarInfo = tbData.variables[connectedVarName];
@@ -874,57 +961,36 @@
                             let labelSuffix = tbVarInfo.unpackedDims.map(d => `[${d.start}:${d.end}]`).join('');
                             const tbNodeName = `tb_${connectedVarName}`;
 
-                            g.setNode(tbNodeName, {
-                                label: connectedVarName + " " + labelSuffix, baseName: connectedVarName,
-                                type: 'tb_memory', numBits: numBits, unpackedDims: tbVarInfo.unpackedDims,
+                            addNode(tbNodeName, {
+                                label: connectedVarName + " " + labelSuffix, baseName: connectedVarName, type: 'tb_memory', numBits: numBits, unpackedDims: tbVarInfo.unpackedDims,
                                 width: Math.max(totalW, (connectedVarName.length + labelSuffix.length) * 8 + 24), height: totalH,
-                                inPorts: isInput ? [] : [tbNodeName],
-                                outPorts: isInput ? [tbNodeName] : [], flipH: false, flipV: false
+                                inPorts: isInput ? [] : [tbNodeName], outPorts: isInput ? [tbNodeName] : [], flipH: false, flipV: false
                             });
                             
-                            if (isInput) {
-                                g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
-                            } else {
-                                g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
-                            }
+                            if (isInput) addEdge(tbNodeName, 0, portName, 0);
+                            else addEdge(portName, 0, tbNodeName, 0);
 
                         } else if (isPortVector && numBits > 1) {
                             const tbNodeName = `tb_${connectedVarName}`;
-                            
-                            g.setNode(tbNodeName, {
-                                label: connectedVarName,
-                                baseName: connectedVarName,
-                                type: 'tb_vector_component',
-                                numBits: numBits,
-                                width: numBits * 30, height: 36, 
-                                inPorts: isInput ? [] : Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`),
-                                outPorts: isInput ? Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`) : [],
-                                flipH: false, flipV: false
+                            const tbPortArr = Array.from({length: numBits}, (_, i) => `${tbNodeName}_${i}`);
+                            addNode(tbNodeName, {
+                                label: connectedVarName, baseName: connectedVarName, type: 'tb_vector_component', numBits: numBits, width: numBits * 30, height: 36, 
+                                inPorts: isInput ? [] : tbPortArr, outPorts: isInput ? tbPortArr : [], flipH: false, flipV: false
                             });
 
                             for(let i=0; i<numBits; i++) {
-                                if (isInput) {
-                                    g.setEdge(tbNodeName, portName, { srcPortIdx: i, tgtPortIdx: i }, `${tbNodeName}_bit${i}_to_${portName}`);
-                                } else {
-                                    g.setEdge(portName, tbNodeName, { srcPortIdx: i, tgtPortIdx: i }, `${portName}_bit${i}_to_${tbNodeName}`);
-                                }
+                                if (isInput) addEdge(tbNodeName, i, portName, i);
+                                else addEdge(portName, i, tbNodeName, i);
                             }
                         } else {
                             const tbNodeName = `tb_${connectedVarName}`;
-                            g.setNode(tbNodeName, {
-                                label: connectedVarName, 
-                                baseName: connectedVarName,
-                                type: 'tb_component',
-                                width: Math.max(44, connectedVarName.length * 8 + 10), height: 44,
-                                inPorts: [], outPorts: [],
-                                flipH: false, flipV: false
+                            addNode(tbNodeName, {
+                                label: connectedVarName, baseName: connectedVarName, type: 'tb_component', width: Math.max(44, connectedVarName.length * 8 + 10), height: 44,
+                                inPorts: isInput ? [] : [tbNodeName], outPorts: isInput ? [tbNodeName] : [], flipH: false, flipV: false
                             });
 
-                            if (isInput) {
-                                g.setEdge(tbNodeName, portName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${tbNodeName}_to_${portName}`);
-                            } else {
-                                g.setEdge(portName, tbNodeName, { srcPortIdx: 0, tgtPortIdx: 0 }, `${portName}_to_${tbNodeName}`);
-                            }
+                            if (isInput) addEdge(tbNodeName, 0, portName, 0);
+                            else addEdge(portName, 0, tbNodeName, 0);
                         }
                     }
 
@@ -933,6 +999,7 @@
                             bitDrivers[bit] = { node: portName, portIdx: isPortVector ? idx : 0 }; 
                         });
                     }
+                    portIndex++;
                 }
             }
 
@@ -951,27 +1018,19 @@
                             let totalH = rows * cellH + (rows - 1) * spacingY + padY + 12;
                             let labelSuffix = varInfo.unpackedDims.map(d => `[${d.start}:${d.end}]`).join('');
 
-                            g.setNode(tbNodeName, {
-                                label: varName + " " + labelSuffix, baseName: varName,
-                                type: 'tb_memory', numBits: varInfo.numBits, unpackedDims: varInfo.unpackedDims,
+                            addNode(tbNodeName, {
+                                label: varName + " " + labelSuffix, baseName: varName, type: 'tb_memory', numBits: varInfo.numBits, unpackedDims: varInfo.unpackedDims,
                                 width: Math.max(totalW, (varName.length + labelSuffix.length) * 8 + 24), height: totalH,
                                 inPorts: [], outPorts: [], flipH: false, flipV: false
                             });
                         } else if (varInfo.isVector && varInfo.bits.length > 1) {
-                            g.setNode(tbNodeName, {
-                                label: varName, 
-                                baseName: varName,
-                                type: 'tb_vector_component', 
-                                numBits: varInfo.bits.length,
-                                width: varInfo.bits.length * 30, height: 36,
+                            addNode(tbNodeName, {
+                                label: varName, baseName: varName, type: 'tb_vector_component',  numBits: varInfo.bits.length, width: varInfo.bits.length * 30, height: 36,
                                 inPorts: [], outPorts: [], flipH: false, flipV: false
                             });
                         } else {
-                            g.setNode(tbNodeName, {
-                                label: varName, 
-                                baseName: varName,
-                                type: 'tb_component',
-                                width: Math.max(44, varName.length * 8 + 10), height: 44,
+                            addNode(tbNodeName, {
+                                label: varName, baseName: varName, type: 'tb_component', width: Math.max(44, varName.length * 8 + 10), height: 44,
                                 inPorts: [], outPorts: [], flipH: false, flipV: false
                             });
                         }
@@ -1016,12 +1075,9 @@
                         height = Math.max(100, Math.max(inPorts.length, outPorts.length) * 22 + 20);
                     }
 
-                    g.setNode(cellName, {
-                        label: cleanLabel, subLabel: cleanName, exactModuleType: exactModuleType,
-                        type: gateType === 'instance' ? 'instance' : 'gate',
-                        gateType: gateType, width: width, height: height,
-                        inPorts: inPorts, outPorts: outPorts,
-                        flipH: false, flipV: false
+                    addNode(cellName, {
+                        label: cleanLabel, subLabel: cleanName, exactModuleType: exactModuleType, type: gateType === 'instance' ? 'instance' : 'gate',
+                        gateType: gateType, width: width, height: height, inPorts: inPorts, outPorts: outPorts, flipH: false, flipV: false
                     });
 
                     outPorts.forEach((port, idx) => {
@@ -1033,7 +1089,7 @@
 
             if (mod.cells) {
                 for (const [cellName, cellData] of Object.entries(mod.cells)) {
-                    const nodeData = g.node(cellName);
+                    const nodeData = nodesMap[cellName];
                     nodeData.inPorts.forEach((port, idx) => {
                         const driverGroups = {};
                         cellData.connections[port].forEach(bit => {
@@ -1044,9 +1100,7 @@
                             }
                         });
                         Object.values(driverGroups).forEach(grp => {
-                            g.setEdge(grp.node, cellName, { 
-                                srcPortIdx: grp.portIdx, tgtPortIdx: idx 
-                            }, `${grp.node}_${cellName}_${port}_${grp.portIdx}`);
+                            addEdge(grp.node, grp.portIdx, cellName, idx);
                         });
                     });
                 }
@@ -1066,25 +1120,27 @@
                             }
                         });
                         Object.values(driverGroups).forEach(grp => {
-                            g.setEdge(grp.node, portName, { 
-                                srcPortIdx: grp.srcPortIdx, tgtPortIdx: grp.tgtPortIdx
-                            }, `${grp.node}_${portName}_${grp.srcPortIdx}`);
+                            addEdge(grp.node, grp.srcPortIdx, portName, grp.tgtPortIdx);
                         });
                     }
                 }
             }
 
-            dagre.layout(g);
-            return g;
+            return {
+                id: "root",
+                name: topModuleName.replace('\\', ''),
+                children: Object.values(nodesMap),
+                edges: edgesList
+            };
         }
 
         // ==========================================
-        // 4. SAFEPATH MANHATTAN RENDERING 
+        // 4. SAFEPATH RENDERING 
         // ==========================================
         function resizeCanvas() {
             canvas.width = wrapper.getBoundingClientRect().width;
             canvas.height = wrapper.getBoundingClientRect().height;
-            if(dagGraph) renderGraph();
+            if(activeGraph) renderGraph();
         }
 
         function drawArrowhead(ctx, x, y, angle, size = 6, color) {
@@ -1115,16 +1171,6 @@
                 ctx.quadraticCurveTo(x + 12, y + h/2, x, y);
                 ctx.shadowColor = colors.shadow; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
                 ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
-                
-                if (node && node.inPorts) {
-                    ctx.beginPath();
-                    node.inPorts.forEach((p, i) => {
-                        const pinY = y + (i + 1) * (h / (node.inPorts.length + 1));
-                        ctx.moveTo(x - 2, pinY);
-                        ctx.lineTo(x + 12, pinY);
-                    });
-                    ctx.stroke();
-                }
             } 
             else if (type === 'xor' || type === 'xnor') {
                 const offset = 8;
@@ -1139,16 +1185,6 @@
                 ctx.moveTo(x, y);
                 ctx.quadraticCurveTo(x + 12, y + h/2, x, y + h);
                 ctx.stroke();
-                
-                if (node && node.inPorts) {
-                    ctx.beginPath();
-                    node.inPorts.forEach((p, i) => {
-                        const pinY = y + (i + 1) * (h / (node.inPorts.length + 1));
-                        ctx.moveTo(x - 2, pinY);
-                        ctx.lineTo(x + 16, pinY);
-                    });
-                    ctx.stroke();
-                }
             } 
             else { 
                 const outX = type === 'not' ? (x + w - 8) : (x + w);
@@ -1176,7 +1212,7 @@
         }
 
         function renderGraph() {
-            if (!dagGraph) return;
+            if (!activeGraph) return;
             const colors = getColors();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(panX, panY); ctx.scale(scale, scale);
@@ -1186,23 +1222,20 @@
             let hasInternalNodes = false;
             let hasTBNodes = false;
             
-            dagGraph.nodes().forEach(v => {
-                const node = dagGraph.node(v);
-                if (!node || node.type === 'wire') return;
-
-                tbMinX = Math.min(tbMinX, node.x - node.width/2);
-                tbMinY = Math.min(tbMinY, node.y - node.height/2);
-                tbMaxX = Math.max(tbMaxX, node.x + node.width/2);
-                tbMaxY = Math.max(tbMaxY, node.y + node.height/2);
+            activeGraph.children.forEach(node => {
+                tbMinX = Math.min(tbMinX, node.x);
+                tbMinY = Math.min(tbMinY, node.y);
+                tbMaxX = Math.max(tbMaxX, node.x + node.width);
+                tbMaxY = Math.max(tbMaxY, node.y + node.height);
 
                 if (node.type.startsWith('tb_')) {
                     hasTBNodes = true;
                 } else {
                     hasInternalNodes = true;
-                    minX = Math.min(minX, node.x - node.width/2);
-                    minY = Math.min(minY, node.y - node.height/2);
-                    maxX = Math.max(maxX, node.x + node.width/2);
-                    maxY = Math.max(maxY, node.y + node.height/2);
+                    minX = Math.min(minX, node.x);
+                    minY = Math.min(minY, node.y);
+                    maxX = Math.max(maxX, node.x + node.width);
+                    maxY = Math.max(maxY, node.y + node.height);
                 }
             });
 
@@ -1236,118 +1269,27 @@
                 ctx.fillStyle = colors.text; 
                 ctx.font = 'bold 16px "Inter"'; 
                 ctx.textAlign = 'center';
-                ctx.fillText(dagGraph.graph().name || "top_module", (minX + maxX)/2, minY - pad + 20);
+                ctx.fillText(activeGraph.name || "top_module", (minX + maxX)/2, minY - pad + 20);
             }
 
-            dagGraph.edges().forEach(e => {
-                const edgeObj = dagGraph.edge(e);
-                edgeObj.customOffset = edgeObj.customOffset || 0;
-                
-                const srcNode = dagGraph.node(e.v);
-                const tgtNode = dagGraph.node(e.w);
+            // --- EDGE ROUTING ENGINE SELECTION ---
+            activeGraph.edges.forEach(edge => {
+                const srcNode = activeGraph.children.find(c => c.id === edge.vcdData.srcNodeName);
+                const tgtNode = activeGraph.children.find(c => c.id === edge.vcdData.tgtNodeName);
                 if(!srcNode || !tgtNode) return;
 
-                const srcFlip = srcNode.flipH || false;
-                const tgtFlip = tgtNode.flipH || false;
+                let srcDx = srcNode.x - (srcNode.origX !== undefined ? srcNode.origX : srcNode.x);
+                let srcDy = srcNode.y - (srcNode.origY !== undefined ? srcNode.origY : srcNode.y);
+                let tgtDx = tgtNode.x - (tgtNode.origX !== undefined ? tgtNode.origX : tgtNode.x);
+                let tgtDy = tgtNode.y - (tgtNode.origY !== undefined ? tgtNode.origY : tgtNode.y);
 
-                let bubbleOffset = 0;
-                if (['nand', 'nor', 'xnor'].includes(srcNode.gateType)) {
-                    bubbleOffset = 8;
-                } else if (srcNode.gateType === 'not') {
-                    bubbleOffset = 0; 
-                }
-                
-                let srcPinExt = 0;
-                if (srcNode.type === 'instance' || srcNode.type === 'input' || srcNode.type === 'output') srcPinExt = 8;
-                
-                let startX = srcNode.x + (srcFlip ? -1 : 1) * (srcNode.width / 2 + bubbleOffset + srcPinExt);
-                let startY = srcNode.y;
-                
-                if (srcNode.type === 'tb_vector_component' || srcNode.isVector) {
-                    const bitWidth = srcNode.width / srcNode.numBits;
-                    const visualIdx = srcNode.numBits - 1 - edgeObj.srcPortIdx;
-                    startX = (srcNode.x - srcNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
-                    startY = srcNode.y + srcNode.height/2; 
-                } else if (srcNode.outPorts && srcNode.outPorts.length > 0) {
-                    let idx = srcNode.flipV ? (srcNode.outPorts.length - 1 - edgeObj.srcPortIdx) : edgeObj.srcPortIdx;
-                    startY = (srcNode.y - srcNode.height/2) + (idx + 1) * (srcNode.height / (srcNode.outPorts.length + 1));
-                }
-
-                let tgtPinExt = 0;
-                if (tgtNode.type === 'instance' || tgtNode.type === 'input' || tgtNode.type === 'output') tgtPinExt = 8;
-
-                let endX = tgtNode.x + (tgtFlip ? 1 : -1) * (tgtNode.width / 2 + tgtPinExt);
-                let endY = tgtNode.y;
-                
-                if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
-                    const bitWidth = tgtNode.width / tgtNode.numBits;
-                    const visualIdx = tgtNode.numBits - 1 - edgeObj.tgtPortIdx;
-                    endX = (tgtNode.x - tgtNode.width/2) + (visualIdx * bitWidth) + (bitWidth/2);
-                    endY = tgtNode.y + tgtNode.height/2;
-                } else if (tgtNode.inPorts && tgtNode.inPorts.length > 0) {
-                    let idx = tgtNode.flipV ? (tgtNode.inPorts.length - 1 - edgeObj.tgtPortIdx) : edgeObj.tgtPortIdx;
-                    endY = (tgtNode.y - tgtNode.height/2) + (idx + 1) * (tgtNode.height / (tgtNode.inPorts.length + 1));
-                }
-
-                const spreadX = (srcNode.isVector || tgtNode.isVector) ? 0 : (edgeObj.srcPortIdx || 0) * 8;
-                const spreadY = (srcNode.isVector || tgtNode.isVector) ? (edgeObj.tgtPortIdx || 0) * 10 : (edgeObj.tgtPortIdx || 0) * 8;
-
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-
-                const srcIsBottom = srcNode.type === 'tb_vector_component' || srcNode.isVector;
-                const tgtIsBottom = tgtNode.type === 'tb_vector_component' || tgtNode.isVector;
-
-                if (srcIsBottom && tgtIsBottom) {
-                    const dropY = Math.max(startY, endY) + 30 + spreadY + edgeObj.customOffset;
-                    ctx.lineTo(startX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
-                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: startX, x2: endX };
-                } else if (srcIsBottom && !tgtIsBottom) {
-                    const dropY = startY + 30 + spreadY + edgeObj.customOffset;
-                    const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
-                    ctx.lineTo(startX, dropY); ctx.lineTo(inX, dropY); ctx.lineTo(inX, endY); ctx.lineTo(endX, endY);
-                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: startX, x2: inX };
-                } else if (!srcIsBottom && tgtIsBottom) {
-                    const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
-                    const dropY = endY + 30 + spreadY + edgeObj.customOffset;
-                    ctx.lineTo(outX, startY); ctx.lineTo(outX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
-                    edgeObj._hitSegment = { type: 'h', y: dropY, x1: outX, x2: endX };
-                } else {
-                    const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
-                    ctx.lineTo(outX, startY);
-                    const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
-
-                    let hitSegment = null;
-
-                    if (!srcFlip && !tgtFlip && outX < inX) {
-                        let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
-                        ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
-                        hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
-                    } else if (srcFlip && tgtFlip && outX > inX) {
-                        let midX = outX + (inX - outX) / 2 + edgeObj.customOffset;
-                        ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
-                        hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
-                    } else {
-                        const goUp = startY >= endY;
-                        const baseClearanceY = goUp ? (endY - 40 - spreadY) : (endY + 40 + spreadY);
-                        let clearanceY = baseClearanceY + edgeObj.customOffset;
-                        ctx.lineTo(outX, clearanceY); ctx.lineTo(inX, clearanceY); ctx.lineTo(inX, endY);
-                        hitSegment = { type: 'h', y: clearanceY, x1: outX, x2: inX };
-                    }
-
-                    edgeObj._hitSegment = hitSegment; 
-                    ctx.lineTo(endX, endY);
-                }
-                
-                // --- WIRE COLOR CODING LOGIC ---
                 let wireBaseColor = colors.wire;
                 let simNode = getNodeValueFormatted(srcNode);
-                let checkIdx = edgeObj.srcPortIdx || 0;
+                let checkIdx = edge.vcdData.srcPortIdx || 0;
 
-                // Fallback to target node if source mapping fails
                 if (!simNode || simNode.val === undefined) {
                     simNode = getNodeValueFormatted(tgtNode);
-                    checkIdx = edgeObj.tgtPortIdx || 0;
+                    checkIdx = edge.vcdData.tgtPortIdx || 0;
                 }
 
                 if (simNode && simNode.val) {
@@ -1355,51 +1297,175 @@
                     let charIdx = valStr.length - 1 - checkIdx;
                     let bitChar = valStr[charIdx] !== undefined ? valStr[charIdx] : valStr[0];
 
-                    if (bitChar === '1') {
-                        wireBaseColor = colors.val1; // Blue
-                    } else if (bitChar.toLowerCase() === 'x') {
-                        wireBaseColor = colors.valX; // Red
-                    } else if (bitChar.toLowerCase() === 'z') {
-                        wireBaseColor = colors.valZ; // Amber/Light Orange
-                    }
-                    // '0' uses default no color (colors.wire)
+                    if (bitChar === '1') wireBaseColor = colors.val1;
+                    else if (bitChar.toLowerCase() === 'x') wireBaseColor = colors.valX;
+                    else if (bitChar.toLowerCase() === 'z') wireBaseColor = colors.valZ;
                 }
 
-                if (hoveredEdge === e || draggedEdge === e) {
+                if (hoveredEdge === edge.id) {
                     ctx.strokeStyle = colors.wireHover; 
                     ctx.lineWidth = 3.5; 
                 } else {
                     ctx.strokeStyle = wireBaseColor; 
                     ctx.lineWidth = 2.5; 
                 }
-                
-                ctx.stroke();
-                
-                if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
-                    drawArrowhead(ctx, endX, endY, -Math.PI/2, 6, ctx.strokeStyle);
-                } else if (tgtNode.type !== 'gate') {
-                    drawArrowhead(ctx, endX, endY, tgtFlip ? Math.PI : 0, 6, ctx.strokeStyle);
+
+                ctx.beginPath();
+
+                if (edge.sections && edge.sections[0]) {
+                    // ====== ELK EXACT ORTHOGONAL ROUTING ======
+                    const sec = edge.sections[0];
+                    const startX = sec.startPoint.x + srcDx;
+                    const startY = sec.startPoint.y + srcDy;
+                    const endX = sec.endPoint.x + tgtDx;
+                    const endY = sec.endPoint.y + tgtDy;
+
+                    ctx.moveTo(startX, startY);
+                    if (sec.bendPoints && sec.bendPoints.length > 0) {
+                        ctx.lineTo(sec.bendPoints[0].x + srcDx, sec.bendPoints[0].y + srcDy);
+                        for(let i = 1; i < sec.bendPoints.length - 1; i++) {
+                            ctx.lineTo(sec.bendPoints[i].x, sec.bendPoints[i].y);
+                        }
+                        if (sec.bendPoints.length > 1) {
+                            ctx.lineTo(sec.bendPoints[sec.bendPoints.length - 1].x + tgtDx, sec.bendPoints[sec.bendPoints.length - 1].y + tgtDy);
+                        }
+                    } else {
+                        if (srcDx !== 0 || srcDy !== 0 || tgtDx !== 0 || tgtDy !== 0) {
+                            let midX = startX + (endX - startX) / 2;
+                            ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
+                        }
+                    }
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    
+                    let prevPt;
+                    if (sec.bendPoints && sec.bendPoints.length > 0) {
+                        prevPt = sec.bendPoints.length > 1 
+                            ? {x: sec.bendPoints[sec.bendPoints.length-1].x + tgtDx, y: sec.bendPoints[sec.bendPoints.length-1].y + tgtDy}
+                            : {x: sec.bendPoints[0].x + srcDx, y: sec.bendPoints[0].y + srcDy};
+                    } else {
+                        prevPt = (srcDx !== 0 || srcDy !== 0 || tgtDx !== 0 || tgtDy !== 0) ? {x: startX + (endX - startX)/2, y: endY} : {x: startX, y: startY};
+                    }
+                    drawArrowhead(ctx, endX, endY, Math.atan2(endY - prevPt.y, endX - prevPt.x), 6, ctx.strokeStyle);
+
+                } else {
+                    // ====== DAGRE MANUAL MANHATTAN ROUTING ======
+                    const srcFlip = srcNode.flipH || false;
+                    const tgtFlip = tgtNode.flipH || false;
+
+                    let bubbleOffset = 0;
+                    if (['nand', 'nor', 'xnor'].includes(srcNode.gateType)) bubbleOffset = 8;
+
+                    let srcPinExt = 0;
+                    if (srcNode.type === 'instance' || srcNode.type === 'input' || srcNode.type === 'output') srcPinExt = 8;
+
+                    const snX = srcNode.x + srcNode.width/2; 
+                    const snY = srcNode.y + srcNode.height/2;
+                    const tnX = tgtNode.x + tgtNode.width/2;
+                    const tnY = tgtNode.y + tgtNode.height/2;
+
+                    let startX = snX + (srcFlip ? -1 : 1) * (srcNode.width / 2 + bubbleOffset + srcPinExt);
+                    let startY = snY;
+
+                    if (srcNode.type === 'tb_vector_component' || srcNode.isVector) {
+                        const bitWidth = srcNode.width / srcNode.numBits;
+                        const visualIdx = srcNode.numBits - 1 - edge.vcdData.srcPortIdx;
+                        startX = srcNode.x + (visualIdx * bitWidth) + (bitWidth/2);
+                        startY = srcNode.y + srcNode.height; 
+                    } else if (srcNode.outPorts && srcNode.outPorts.length > 0) {
+                        let idx = srcNode.flipV ? (srcNode.outPorts.length - 1 - edge.vcdData.srcPortIdx) : edge.vcdData.srcPortIdx;
+                        startY = srcNode.y + (idx + 1) * (srcNode.height / (srcNode.outPorts.length + 1));
+                    }
+
+                    let tgtPinExt = 0;
+                    if (tgtNode.type === 'instance' || tgtNode.type === 'input' || tgtNode.type === 'output') tgtPinExt = 8;
+
+                    let endX = tnX + (tgtFlip ? 1 : -1) * (tgtNode.width / 2 + tgtPinExt);
+                    let endY = tnY;
+
+                    if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
+                        const bitWidth = tgtNode.width / tgtNode.numBits;
+                        const visualIdx = tgtNode.numBits - 1 - edge.vcdData.tgtPortIdx;
+                        endX = tgtNode.x + (visualIdx * bitWidth) + (bitWidth/2);
+                        endY = tgtNode.y + tgtNode.height;
+                    } else if (tgtNode.inPorts && tgtNode.inPorts.length > 0) {
+                        let idx = tgtNode.flipV ? (tgtNode.inPorts.length - 1 - edge.vcdData.tgtPortIdx) : edge.vcdData.tgtPortIdx;
+                        endY = tgtNode.y + (idx + 1) * (tgtNode.height / (tgtNode.inPorts.length + 1));
+                    }
+
+                    const spreadX = (srcNode.isVector || tgtNode.isVector) ? 0 : (edge.vcdData.srcPortIdx || 0) * 8;
+                    const spreadY = (srcNode.isVector || tgtNode.isVector) ? (edge.vcdData.tgtPortIdx || 0) * 10 : (edge.vcdData.tgtPortIdx || 0) * 8;
+
+                    ctx.moveTo(startX, startY);
+
+                    const srcIsBottom = srcNode.type === 'tb_vector_component' || srcNode.isVector;
+                    const tgtIsBottom = tgtNode.type === 'tb_vector_component' || tgtNode.isVector;
+
+                    let hitSegment = null;
+
+                    if (srcIsBottom && tgtIsBottom) {
+                        const dropY = Math.max(startY, endY) + 30 + spreadY + edge.customOffset;
+                        ctx.lineTo(startX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
+                        hitSegment = { type: 'h', y: dropY, x1: startX, x2: endX };
+                    } else if (srcIsBottom && !tgtIsBottom) {
+                        const dropY = startY + 30 + spreadY + edge.customOffset;
+                        const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
+                        ctx.lineTo(startX, dropY); ctx.lineTo(inX, dropY); ctx.lineTo(inX, endY); ctx.lineTo(endX, endY);
+                        hitSegment = { type: 'h', y: dropY, x1: startX, x2: inX };
+                    } else if (!srcIsBottom && tgtIsBottom) {
+                        const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
+                        const dropY = endY + 30 + spreadY + edge.customOffset;
+                        ctx.lineTo(outX, startY); ctx.lineTo(outX, dropY); ctx.lineTo(endX, dropY); ctx.lineTo(endX, endY);
+                        hitSegment = { type: 'h', y: dropY, x1: outX, x2: endX };
+                    } else {
+                        const outX = startX + (srcFlip ? -20 - spreadX : 20 + spreadX);
+                        ctx.lineTo(outX, startY);
+                        const inX = endX + (tgtFlip ? 20 + spreadX : -20 - spreadX);
+
+                        if (!srcFlip && !tgtFlip && outX < inX) {
+                            let midX = outX + (inX - outX) / 2 + edge.customOffset;
+                            ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
+                            hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
+                        } else if (srcFlip && tgtFlip && outX > inX) {
+                            let midX = outX + (inX - outX) / 2 + edge.customOffset;
+                            ctx.lineTo(midX, startY); ctx.lineTo(midX, endY);
+                            hitSegment = { type: 'v', x: midX, y1: startY, y2: endY };
+                        } else {
+                            const goUp = startY >= endY;
+                            const baseClearanceY = goUp ? (endY - 40 - spreadY) : (endY + 40 + spreadY);
+                            let clearanceY = baseClearanceY + edge.customOffset;
+                            ctx.lineTo(outX, clearanceY); ctx.lineTo(inX, clearanceY); ctx.lineTo(inX, endY);
+                            hitSegment = { type: 'h', y: clearanceY, x1: outX, x2: inX };
+                        }
+                    }
+
+                    edge._hitSegment = hitSegment; 
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+
+                    if (tgtNode.type === 'tb_vector_component' || tgtNode.isVector) {
+                        drawArrowhead(ctx, endX, endY, -Math.PI/2, 6, ctx.strokeStyle);
+                    } else if (tgtNode.type !== 'gate') {
+                        drawArrowhead(ctx, endX, endY, tgtFlip ? Math.PI : 0, 6, ctx.strokeStyle);
+                    }
                 }
             });
 
-            // 3. Update Node Drawing
-            dagGraph.nodes().forEach(v => {
-                const node = dagGraph.node(v);
-                if (node.type === 'wire') return; 
-
+            // --- NODE DRAWING ---
+            activeGraph.children.forEach(node => {
                 const w = node.width; const h = node.height;
                 const w2 = w/2; const h2 = h/2;
 
                 ctx.save();
-                ctx.translate(node.x, node.y);
+                ctx.translate(node.x + w2, node.y + h2);
                 ctx.scale(node.flipH ? -1 : 1, node.flipV ? -1 : 1);
                 
                 ctx.fillStyle = (node.type === 'input' || node.type === 'output' || node.type.startsWith('tb_')) ? colors.ioBg : colors.gateBg;
                 
-                if (selectedNode === v) {
+                if (selectedNode === node.id) {
                     ctx.strokeStyle = colors.selected;
                     ctx.lineWidth = 3;
-                } else if (hoveredNode === v) {
+                } else if (hoveredNode === node.id) {
                     ctx.strokeStyle = colors.wireHover;
                     ctx.lineWidth = 2.5;
                 } else {
@@ -1436,28 +1502,25 @@
                     ctx.fill(); ctx.shadowColor = 'transparent'; ctx.stroke();
                 }
 
-                ctx.strokeStyle = colors.nodeBorder;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                if (node.inPorts && !node.isVector && !node.type.startsWith('tb_') && node.type !== 'gate') {
-                    node.inPorts.forEach((p, i) => {
-                        const pinY = -h2 + (i + 1) * (h / (node.inPorts.length + 1));
-                        ctx.moveTo(-w2 - 8, pinY);
-                        ctx.lineTo(-w2, pinY);
+                if (node.ports && node.type !== 'gate') {
+                    ctx.strokeStyle = colors.nodeBorder;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    node.ports.forEach(port => {
+                        const px = port.x - w2;
+                        const py = port.y - h2;
+                        ctx.moveTo(px, py);
+                        if (port.properties['port.side'] === 'WEST') {
+                            ctx.lineTo(px - 8, py);
+                        } else {
+                            ctx.lineTo(px + 8, py);
+                        }
                     });
+                    ctx.stroke();
                 }
-                if (node.outPorts && !node.isVector && !node.type.startsWith('tb_') && node.type !== 'gate') {
-                    node.outPorts.forEach((p, i) => {
-                        const pinY = -h2 + (i + 1) * (h / (node.outPorts.length + 1));
-                        ctx.moveTo(w2, pinY);
-                        ctx.lineTo(w2 + 8, pinY);
-                    });
-                }
-                ctx.stroke();
 
-                ctx.restore(); // Undo flip/scale for perfect text rendering
+                ctx.restore(); 
 
-                // 4. Update Text Labels and Exact Binary Bit Placement
                 ctx.fillStyle = colors.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 
                 const isBoxNode = node.type === 'input' || node.type === 'output' || node.type === 'tb_component' || node.type === 'tb_vector_component';
@@ -1465,7 +1528,7 @@
                 if (isBoxNode) {
                     ctx.font = 'bold 13px "JetBrains Mono"';
                     ctx.fillStyle = colors.text;
-                    ctx.fillText(node.label, node.x, node.y - node.height/2 - 14);
+                    ctx.fillText(node.label, node.x + w2, node.y - 14);
 
                     const simNode = getNodeValueFormatted(node);
                     let valString = simNode ? simNode.val : "?".repeat(node.numBits || 1);
@@ -1477,7 +1540,7 @@
                         const bitWidth = node.width / targetSize;
                         for (let i = 0; i < targetSize; i++) {
                             let bitChar = valString[i] || '?';
-                            let bitCenterX = node.x - node.width/2 + (i * bitWidth) + (bitWidth / 2);
+                            let bitCenterX = node.x + (i * bitWidth) + (bitWidth / 2);
                             
                             if (bitChar === '?') ctx.fillStyle = colors.text; 
                             else if (bitChar.toLowerCase() === 'x') ctx.fillStyle = colors.valX;
@@ -1485,7 +1548,7 @@
                             else if (bitChar === '1') ctx.fillStyle = colors.val1;
                             else ctx.fillStyle = colors.val0;
 
-                            ctx.fillText(bitChar, bitCenterX, node.y + 1);
+                            ctx.fillText(bitChar, bitCenterX, node.y + h2 + 1);
                         }
                     } else {
                         let bitChar = valString[0] || '?';
@@ -1495,14 +1558,13 @@
                         else if (bitChar === '1') ctx.fillStyle = colors.val1;
                         else ctx.fillStyle = colors.val0;
 
-                        ctx.fillText(bitChar, node.x, node.y + 1);
+                        ctx.fillText(bitChar, node.x + w2, node.y + h2 + 1);
                     }
                     
                 } else if (node.type === 'tb_memory') {
-                    // DYNAMIC MEMORY GRID GENERATION
                     ctx.font = 'bold 13px "JetBrains Mono"';
                     ctx.fillStyle = colors.text;
-                    ctx.fillText(node.label, node.x, node.y - node.height/2 + 14);
+                    ctx.fillText(node.label, node.x + w2, node.y + 14);
 
                     const padX = 12;
                     const padY = 28;
@@ -1521,8 +1583,8 @@
                     for (let i = d1.start; step1 > 0 ? i <= d1.end : i >= d1.end; i += step1) {
                         let c = 0;
                         for (let j = d2.start; step2 > 0 ? j <= d2.end : j >= d2.end; j += step2) {
-                            let cellX = node.x - node.width/2 + padX + c * (cellW + spacingX);
-                            let cellY = node.y - node.height/2 + padY + r * (cellH + spacingY);
+                            let cellX = node.x + padX + c * (cellW + spacingX);
+                            let cellY = node.y + padY + r * (cellH + spacingY);
 
                             ctx.beginPath(); ctx.rect(cellX, cellY, cellW, cellH);
                             ctx.fillStyle = colors.gateBg;
@@ -1539,7 +1601,6 @@
                             ctx.strokeStyle = colors.frame;
                             ctx.stroke();
 
-                            // FETCH THE SPECIFIC MEMORY CELL VALUE FROM VCD
                             let indexStr = node.unpackedDims.length > 1 ? `[${i}][${j}]` : `[${i}]`;
                             const simNode = getNodeValueFormatted(node, indexStr);
                             let valString = simNode ? simNode.val : "?".repeat(node.numBits);
@@ -1563,22 +1624,19 @@
                     }
 
                 } else if (node.type === 'instance') {
-    // 1. Clean up the ugly Yosys elaboration names
-    let cleanType = node.label.split('\\')[0]; // Strips binary parameters like \PTR_WIDTH=...
-    cleanType = cleanType.replace(/^PARAMOD\$?[0-9A-F]*/i, ''); // Strips PARAMOD$ hashes
+                    let cleanType = node.label.split('\\')[0]; 
+                    cleanType = cleanType.replace(/^PARAMOD\$?[0-9A-F]*/i, ''); 
 
-    // 2. Make the Instance Name (subLabel) the big, bold primary text
-    ctx.font = 'bold 16px "Inter"'; 
-    ctx.fillStyle = colors.text; 
-    ctx.fillText(node.subLabel, node.x, node.y - 14);
+                    ctx.font = 'bold 16px "Inter"'; 
+                    ctx.fillStyle = colors.text; 
+                    ctx.fillText(node.subLabel, node.x + w2, node.y + h2 - 14);
 
-    // 3. Make the cleaned Module Type the smaller secondary text below it
-    ctx.font = '13px "JetBrains Mono"'; 
-    ctx.fillStyle = colors.nodeBorder; 
-    ctx.fillText(cleanType, node.x, node.y + 16);
-} else if (node.type === 'gate') {
+                    ctx.font = '13px "JetBrains Mono"'; 
+                    ctx.fillStyle = colors.nodeBorder; 
+                    ctx.fillText(cleanType, node.x + w2, node.y + h2 + 16);
+                } else if (node.type === 'gate') {
                     ctx.font = 'bold 12px "JetBrains Mono"'; 
-                    if (hoveredNode === v || selectedNode === v) ctx.fillText(node.subLabel, node.x, node.y - 25);
+                    if (hoveredNode === node.id || selectedNode === node.id) ctx.fillText(node.subLabel, node.x + w2, node.y + h2 - 25);
                 }
             });
 
@@ -1586,11 +1644,10 @@
         }
 
         // ==========================================
-        // 5. INTERACTIVITY & WIRE DRAGGING
+        // 5. INTERACTIVITY & HIT TESTING
         // ==========================================
         
         wrapper.addEventListener('dblclick', (e) => {
-            // STOP THE BUBBLING POPUP BUG HERE
             if (e.target.closest('#bottom-time-widget')) return; 
             navigateDown();
         });
@@ -1604,13 +1661,6 @@
                 navigateDown();
                 return;
             }
-            
-            const activeNode = selectedNode || hoveredNode;
-            if (activeNode && dagGraph) {
-                const node = dagGraph.node(activeNode);
-                if (e.key.toLowerCase() === 'h') { node.flipH = !node.flipH; renderGraph(); }
-                if (e.key.toLowerCase() === 'v') { node.flipV = !node.flipV; renderGraph(); }
-            }
         });
 
         wrapper.addEventListener('wheel', (e) => { 
@@ -1620,9 +1670,8 @@
 
         window.zoomCanvas = (amt, cx = canvas.width/2, cy = canvas.height/2) => { 
             let nS = scale * amt; 
-            // Lowered minimum scale to 0.01 to support massive designs
             if (nS < 0.01) nS = 0.01; 
-            if (nS > 10) nS = 10; // Increased max zoom just in case
+            if (nS > 10) nS = 10; 
             
             panX = cx - (cx - panX) * (nS / scale); 
             panY = cy - (cy - panY) * (nS / scale); 
@@ -1631,9 +1680,10 @@
         }
 
         window.fitCanvas = () => { 
-            if(!dagGraph) return;
-            const graphW = dagGraph.graph().width || 800; 
-            const graphH = dagGraph.graph().height || 600; 
+            if(!activeGraph) return;
+            // Handle differences in Graph dimension storage between Dagre and Elk
+            const graphW = activeGraph.width || 800; 
+            const graphH = activeGraph.height || 600; 
             const cw = canvas.width; 
             const ch = canvas.height;
             scale = Math.min((cw - 160) / graphW, (ch - 160) / graphH); 
@@ -1649,7 +1699,6 @@
         let dragOffsetX = 0, dragOffsetY = 0;
 
         wrapper.addEventListener('mousedown', (e) => { 
-            // PREVENT DRAGGING WHEN CLICKING WIDGET
             if (e.target.closest('#bottom-time-widget')) return;
 
             const rect = canvas.getBoundingClientRect();
@@ -1657,17 +1706,11 @@
             const my = (e.clientY - rect.top - panY) / scale;
             
             let clickedNode = null;
-            if(dagGraph) {
-                const nodes = dagGraph.nodes();
-                for(let i = nodes.length - 1; i >= 0; i--) {
-                    const v = nodes[i];
-                    const node = dagGraph.node(v); 
-                    if (node.type === 'wire') continue;
-                    
-                    const nx = node.x - node.width / 2; 
-                    const ny = node.y - node.height / 2;
-                    if (mx >= nx && mx <= nx + node.width && my >= ny && my <= ny + node.height) {
-                        clickedNode = v;
+            if(activeGraph) {
+                for(let i = activeGraph.children.length - 1; i >= 0; i--) {
+                    const node = activeGraph.children[i];
+                    if (mx >= node.x && mx <= node.x + node.width && my >= node.y && my <= node.y + node.height) {
+                        clickedNode = node.id;
                         break;
                     }
                 }
@@ -1676,14 +1719,14 @@
             if (clickedNode) {
                 draggedNode = clickedNode;
                 selectedNode = clickedNode; 
-                const node = dagGraph.node(draggedNode);
+                const node = activeGraph.children.find(c => c.id === draggedNode);
                 dragOffsetX = mx - node.x;
                 dragOffsetY = my - node.y;
                 wrapper.style.cursor = 'grabbing';
                 renderGraph(); 
             } else if (hoveredEdge) {
                 draggedEdge = hoveredEdge;
-                const edge = dagGraph.edge(draggedEdge);
+                const edge = activeGraph.edges.find(e => e.id === draggedEdge);
                 dragEdgeStartOffset = edge.customOffset || 0;
                 startDragX = mx;
                 startDragY = my;
@@ -1715,16 +1758,14 @@
                 panY = e.clientY - startDragY; 
                 renderGraph(); 
             } else if (draggedNode) {
-                const node = dagGraph.node(draggedNode);
+                const node = activeGraph.children.find(c => c.id === draggedNode);
                 node.x = mx - dragOffsetX;
                 node.y = my - dragOffsetY;
-                
                 node.x = Math.round(node.x / 20) * 20;
                 node.y = Math.round(node.y / 20) * 20;
-
                 renderGraph();
             } else if (draggedEdge) {
-                const edge = dagGraph.edge(draggedEdge);
+                const edge = activeGraph.edges.find(e => e.id === draggedEdge);
                 const seg = edge._hitSegment;
                 if (!seg) return;
                 
@@ -1735,17 +1776,13 @@
                 }
                 renderGraph();
             } else {
-                if(!dagGraph) return;
+                if(!activeGraph) return;
                 let foundNode = null;
                 let foundEdge = null;
                 
-                dagGraph.nodes().forEach(v => {
-                    const node = dagGraph.node(v); 
-                    if (node.type === 'wire') return;
-                    const nx = node.x - node.width / 2; 
-                    const ny = node.y - node.height / 2;
-                    if (mx >= nx && mx <= nx + node.width && my >= ny && my <= ny + node.height) {
-                        foundNode = v;
+                activeGraph.children.forEach(node => {
+                    if (mx >= node.x && mx <= node.x + node.width && my >= node.y && my <= node.y + node.height) {
+                        foundNode = node.id;
                         
                         const wrapperRect = wrapper.getBoundingClientRect();
                         tooltip.style.left = (e.clientX - wrapperRect.left + 15) + 'px'; 
@@ -1763,14 +1800,30 @@
                 });
 
                 if (!foundNode) {
-                    dagGraph.edges().forEach(e => {
-                        const edgeObj = dagGraph.edge(e);
-                        const seg = edgeObj._hitSegment;
-                        if (seg) {
-                            if (seg.type === 'v') {
-                                if (Math.abs(mx - seg.x) < 12 && my >= Math.min(seg.y1, seg.y2) - 5 && my <= Math.max(seg.y1, seg.y2) + 5) foundEdge = e;
-                            } else {
-                                if (Math.abs(my - seg.y) < 12 && mx >= Math.min(seg.x1, seg.x2) - 5 && mx <= Math.max(seg.x1, seg.x2) + 5) foundEdge = e;
+                    activeGraph.edges.forEach(edge => {
+                        if (edge.sections && edge.sections[0]) {
+                            // ELK Edge Hit Test
+                            const sec = edge.sections[0];
+                            let hit = false;
+                            let pts = [sec.startPoint, ...(sec.bendPoints || []), sec.endPoint];
+                            for(let i=0; i<pts.length-1; i++) {
+                                let p1 = pts[i]; let p2 = pts[i+1];
+                                if (Math.abs(p1.x - p2.x) < 1) { 
+                                    if (Math.abs(mx - p1.x) < 5 && my >= Math.min(p1.y, p2.y) && my <= Math.max(p1.y, p2.y)) hit = true;
+                                } else { 
+                                    if (Math.abs(my - p1.y) < 5 && mx >= Math.min(p1.x, p2.x) && mx <= Math.max(p1.x, p2.x)) hit = true;
+                                }
+                            }
+                            if (hit) foundEdge = edge.id;
+                        } else {
+                            // Dagre Edge Hit Test
+                            const seg = edge._hitSegment;
+                            if (seg) {
+                                if (seg.type === 'v') {
+                                    if (Math.abs(mx - seg.x) < 12 && my >= Math.min(seg.y1, seg.y2) - 5 && my <= Math.max(seg.y1, seg.y2) + 5) foundEdge = edge.id;
+                                } else {
+                                    if (Math.abs(my - seg.y) < 12 && mx >= Math.min(seg.x1, seg.x2) - 5 && mx <= Math.max(seg.x1, seg.x2) + 5) foundEdge = edge.id;
+                                }
                             }
                         }
                     });
@@ -1784,8 +1837,13 @@
                 if (hoveredNode) {
                     wrapper.style.cursor = 'pointer';
                 } else if (hoveredEdge) {
-                    const seg = dagGraph.edge(hoveredEdge)._hitSegment;
-                    wrapper.style.cursor = seg.type === 'v' ? 'col-resize' : 'row-resize';
+                    const edge = activeGraph.edges.find(e => e.id === hoveredEdge);
+                    if (edge.sections && edge.sections[0]) {
+                        wrapper.style.cursor = 'crosshair'; // ELK lines aren't manually draggable right now
+                    } else {
+                        const seg = edge._hitSegment;
+                        wrapper.style.cursor = seg.type === 'v' ? 'col-resize' : 'row-resize';
+                    }
                     tooltip.style.display = 'none';
                 } else {
                     wrapper.style.cursor = 'default';
