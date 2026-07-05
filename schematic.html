@@ -1563,9 +1563,20 @@
                     }
 
                 } else if (node.type === 'instance') {
-                    ctx.font = 'bold 16px "Inter"'; ctx.fillText(node.label, node.x, node.y - 14);
-                    ctx.font = '13px "JetBrains Mono"'; ctx.fillStyle = colors.nodeBorder; ctx.fillText(node.subLabel, node.x, node.y + 16);
-                } else if (node.type === 'gate') {
+    // 1. Clean up the ugly Yosys elaboration names
+    let cleanType = node.label.split('\\')[0]; // Strips binary parameters like \PTR_WIDTH=...
+    cleanType = cleanType.replace(/^PARAMOD\$?[0-9A-F]*/i, ''); // Strips PARAMOD$ hashes
+
+    // 2. Make the Instance Name (subLabel) the big, bold primary text
+    ctx.font = 'bold 16px "Inter"'; 
+    ctx.fillStyle = colors.text; 
+    ctx.fillText(node.subLabel, node.x, node.y - 14);
+
+    // 3. Make the cleaned Module Type the smaller secondary text below it
+    ctx.font = '13px "JetBrains Mono"'; 
+    ctx.fillStyle = colors.nodeBorder; 
+    ctx.fillText(cleanType, node.x, node.y + 16);
+} else if (node.type === 'gate') {
                     ctx.font = 'bold 12px "JetBrains Mono"'; 
                     if (hoveredNode === v || selectedNode === v) ctx.fillText(node.subLabel, node.x, node.y - 25);
                 }

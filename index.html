@@ -1664,17 +1664,47 @@ Write your design and testbench, then click 'Run Code'.</span>
         }
 
         window.openRTLViewer = function() {
-            if(!editorDesign) return;
-            const currentDesignCode = editorDesign.getValue();
-            sessionStorage.setItem('ls_rtl_code', currentDesignCode);
+    if(!editorDesign) return;
 
-            if (editorTb) {
-                const currentTbCode = editorTb.getValue();
-                sessionStorage.setItem('ls_tb_code', currentTbCode);
+    // 1. Sync current editor states to the file arrays
+    if(editorDesign && designFiles.length > 0) designFiles[activeDesignIdx].content = editorDesign.getValue();
+    if(editorTb && tbFiles.length > 0) tbFiles[activeTbIdx].content = editorTb.getValue();
+
+    let allFiles = [...designFiles, ...tbFiles];
+
+    // 2. Helper function to recursively resolve includes
+    function resolveIncludes(content, filename) {
+        let lines = content.split('\n');
+        let output = [];
+        for (let i = 0; i < lines.length; i++) {
+            let match = lines[i].match(/^\s*`include\s+"([^"]+)"/);
+            if (match) {
+                let incName = match[1];
+                let incFile = allFiles.find(f => f.name === incName);
+                if (incFile) {
+                    output.push(`// --- Included from ${incName} ---`);
+                    output.push(resolveIncludes(incFile.content, incName));
+                }
+            } else {
+                output.push(lines[i]);
             }
-            
-            window.open('schematic.html', '_blank');
-        };
+        }
+        return output.join('\n');
+    }
+
+    // 3. Resolve includes for both Design and Testbench before saving
+    if (designFiles.length > 0) {
+        const resolvedDesign = resolveIncludes(designFiles[activeDesignIdx].content, designFiles[activeDesignIdx].name);
+        sessionStorage.setItem('ls_rtl_code', resolvedDesign);
+    }
+
+    if (tbFiles.length > 0) {
+        const resolvedTb = resolveIncludes(tbFiles[activeTbIdx].content, tbFiles[activeTbIdx].name);
+        sessionStorage.setItem('ls_tb_code', resolvedTb);
+    }
+    
+    window.open('schematic.html', '_blank');
+};
 
         function initResizers() {
             const hResizer = document.getElementById('h-resizer');
