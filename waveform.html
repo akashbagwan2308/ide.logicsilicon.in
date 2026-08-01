@@ -754,7 +754,7 @@
                         </div>
                         <div class="flex items-center gap-1 pointer-events-auto shrink-0">
                             <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size, sig.name)} pointer-events-none">
-                                ${formatDisplayValue(initVal, sig.size)}
+                                ${formatDisplayValue(initVal, sig.size, sig.name)}
                             </div>
                             <button onclick="event.stopPropagation(); removeItem(${index})" class="remove-btn text-slate-400 hover:text-red-500 p-0.5" title="Hide Trace">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -1053,13 +1053,16 @@
             draw();
         }
 
-        function formatDisplayValue(val, size) {
+        function formatDisplayValue(val, size, name = '') {
             let strVal = String(val);
-            if (strVal.length > 1 && !/^[01xz]+$/i.test(strVal)) {
-                if (strVal === '2' || strVal.toLowerCase() === 'pass') return 'PASS';
-                if (strVal === '3' || strVal.toLowerCase() === 'fail') return 'FAIL';
-                return strVal;
+            let shortName = String(name).split('.').pop().toLowerCase();
+            
+            if (shortName.includes('assert')) {
+                if (strVal === '10' || strVal === '2' || (strVal === '1' && shortName.includes('pass'))) return 'PASS';
+                if (strVal === '11' || strVal === '3' || (strVal === '1' && shortName.includes('fail'))) return 'FAIL';
+                if (strVal === '00' || strVal === '0') return '0';
             }
+
             if (strVal.toLowerCase().includes('x')) return 'X';
             if (strVal.toLowerCase().includes('z')) return 'Z';
             if (size === 1) return strVal;
@@ -1088,19 +1091,18 @@
 
         function getValueClass(val, size, name = '') {
             let sVal = String(val).toLowerCase();
-            let nVal = String(name).toLowerCase();
+            let shortName = String(name).split('.').pop().toLowerCase();
             
-            if (sVal.includes('fail') || sVal === '3') return 'val-x'; 
-            if (sVal.includes('pass') || sVal === '2') return 'val-1';
-            if (sVal.includes('x')) return 'val-x';
-            if (sVal.includes('z')) return 'val-z';
-            if (size > 1 || sVal.length > 1) return 'val-bus';
-            
-            if (sVal === '1') {
-                if (nVal.includes('assert') && nVal.includes('fail')) return 'val-x';
-                if (nVal.includes('assert') && nVal.includes('pass')) return 'val-1';
-                return 'val-1';
+            if (shortName.includes('assert')) {
+                if (sVal === '11' || sVal === '3' || (sVal === '1' && shortName.includes('fail'))) return 'val-x'; 
+                if (sVal === '10' || sVal === '2' || (sVal === '1' && shortName.includes('pass'))) return 'val-1';
+                return 'val-0';
             }
+
+            if (sVal.toLowerCase().includes('x')) return 'val-x';
+            if (sVal.toLowerCase().includes('z')) return 'val-z';
+            if (size > 1) return 'val-bus';
+            if (sVal === '1') return 'val-1';
             return 'val-0';
         }
 
@@ -1201,7 +1203,7 @@
                 const val = getValueAtTime(item.signal, hoverTime);
                 const badge = document.getElementById(`val-badge-${index}`);
                 if (badge) {
-                    badge.innerText = formatDisplayValue(val, item.signal.size);
+                    badge.innerText = formatDisplayValue(val, item.signal.size, item.signal.name);
                     badge.className = `sig-val ${getValueClass(val, item.signal.size, item.signal.name)} pointer-events-none`;
                 }
             });
@@ -1390,32 +1392,35 @@
                     const isUnknown = String(val).toLowerCase().includes('x');
                     const isHighZ = String(val).toLowerCase().includes('z');
 
-                    if (sig.size === 1 && String(val).length === 1) {
-                        let yLine;
-                        let sigName = sig.name.toLowerCase();
-                        let isPassSignal = sigName.includes('assert') && sigName.includes('pass');
-                        let isFailSignal = sigName.includes('assert') && sigName.includes('fail');
+                    let shortName = sig.name.split('.').pop().toLowerCase();
+                    let isAssertionTrack = shortName.includes('assert');
+
+                    if (isAssertionTrack) {
+                        // DEDICATED SINGLE-TRACK ASSERTION ARROW RENDERER
+                        let isPassSignal = (val === '10' || val === '2' || (val === '1' && shortName.includes('pass')));
+                        let isFailSignal = (val === '11' || val === '3' || (val === '1' && shortName.includes('fail')));
 
                         if (isPassSignal || isFailSignal) {
-                            // PURE EVENT-TRACK MODE (NO BASELINE LINES)
-                            if (val === '1') {
-                                let midX = xStart + (xEnd - xStart) / 2;
-                                if (xEnd - xStart > 12) midX = xStart + 6; 
+                            let midX = xStart + (xEnd - xStart) / 2;
+                            if (xEnd - xStart > 12) midX = xStart + 6; 
 
-                                waveCtx.lineWidth = 2.0;
-                                
-                                if (isPassSignal) {
-                                    waveCtx.strokeStyle = '#10b981'; waveCtx.fillStyle = '#10b981';
-                                    waveCtx.beginPath(); waveCtx.moveTo(midX, yBottom); waveCtx.lineTo(midX, yTop + 3); waveCtx.stroke();
-                                    waveCtx.beginPath(); waveCtx.moveTo(midX - 4, yTop + 5); waveCtx.lineTo(midX + 4, yTop + 5); waveCtx.lineTo(midX, yTop - 1); waveCtx.fill();
-                                } else {
-                                    waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = '#ef4444';
-                                    waveCtx.beginPath(); waveCtx.moveTo(midX, yTop); waveCtx.lineTo(midX, yBottom - 3); waveCtx.stroke();
-                                    waveCtx.beginPath(); waveCtx.moveTo(midX - 4, yBottom - 5); waveCtx.lineTo(midX + 4, yBottom - 5); waveCtx.lineTo(midX, yBottom + 1); waveCtx.fill();
-                                }
+                            waveCtx.lineWidth = 2.0;
+                            
+                            if (isPassSignal) {
+                                waveCtx.strokeStyle = '#10b981'; waveCtx.fillStyle = '#10b981';
+                                waveCtx.beginPath(); waveCtx.moveTo(midX, yBottom); waveCtx.lineTo(midX, yTop + 3); waveCtx.stroke();
+                                waveCtx.beginPath(); waveCtx.moveTo(midX - 4, yTop + 5); waveCtx.lineTo(midX + 4, yTop + 5); waveCtx.lineTo(midX, yTop - 1); waveCtx.fill();
+                            } else {
+                                waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = '#ef4444';
+                                waveCtx.beginPath(); waveCtx.moveTo(midX, yTop); waveCtx.lineTo(midX, yBottom - 3); waveCtx.stroke();
+                                waveCtx.beginPath(); waveCtx.moveTo(midX - 4, yBottom - 5); waveCtx.lineTo(midX + 4, yBottom - 5); waveCtx.lineTo(midX, yBottom + 1); waveCtx.fill();
                             }
-                        } else {
-                            // STANDARD SIGNAL PULSE RENDERER WITH FIXED EDGE COLORING
+                        } 
+                        // Intentionally completely blank otherwise (no baseline for 0 or 00)
+                    } else {
+                        // STANDARD SIGNAL PULSE RENDERER WITH FIXED EDGE COLORING
+                        if (sig.size === 1 && String(val).length === 1) {
+                            let yLine;
                             if (val === '1') { 
                                 yLine = yTop; waveCtx.strokeStyle = theme.val1; waveCtx.fillStyle = theme.val1Fill;
                                 waveCtx.fillRect(xStart, yTop, xEnd - xStart, waveHeight);
@@ -1437,7 +1442,6 @@
                                     let prevYLine = prevVal === '1' ? yTop : (prevVal === '0' ? yBottom : yMid);
                                     waveCtx.beginPath();
                                     
-                                    // Robust edge color inheritance for both rising and falling walls
                                     if (val === '1' || prevVal === '1') waveCtx.strokeStyle = theme.val1;
                                     else if (val === 'x' || prevVal === 'x') waveCtx.strokeStyle = theme.valX;
                                     else waveCtx.strokeStyle = theme.val0;
@@ -1446,47 +1450,39 @@
                                     waveCtx.stroke();
                                 }
                             }
-                        }
-                    } else {
-                        let displayValStr = String(val).toLowerCase();
-                        let sigName = sig.name.toLowerCase();
-                        let isAssertionFail = displayValStr.includes('fail') || displayValStr === '3' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('fail'));
-                        let isAssertionPass = displayValStr.includes('pass') || displayValStr === '2' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('pass'));
-
-                        if (isAssertionFail) { waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = 'rgba(239, 68, 68, 0.2)'; } 
-                        else if (isAssertionPass) { waveCtx.strokeStyle = '#10b981'; waveCtx.fillStyle = 'rgba(16, 185, 129, 0.2)'; }
-                        else if (isUnknown) { waveCtx.strokeStyle = theme.valX; waveCtx.fillStyle = theme.valXFill; } 
-                        else if (isHighZ) { waveCtx.strokeStyle = theme.valZ; waveCtx.fillStyle = 'transparent'; } 
-                        else { waveCtx.strokeStyle = theme.valBus; waveCtx.fillStyle = 'transparent'; }
-
-                        if (xEnd - xStart > 4) {
-                            waveCtx.beginPath();
-                            waveCtx.moveTo(xStart, yMid);
-                            waveCtx.lineTo(xStart + 3, yTop); waveCtx.lineTo(xEnd - 3, yTop);
-                            waveCtx.lineTo(xEnd, yMid);
-                            waveCtx.lineTo(xEnd - 3, yBottom); waveCtx.lineTo(xStart + 3, yBottom);
-                            waveCtx.closePath();
-                            
-                            if (isUnknown || isAssertionFail || isAssertionPass) waveCtx.fill();
-                            waveCtx.stroke();
-
-                            if (xEnd - xStart > 25) {
-                                waveCtx.fillStyle = (isUnknown || isAssertionFail) ? theme.busTextX : theme.busTextVal;
-                                if (isAssertionPass) waveCtx.fillStyle = '#10b981';
-                                let displayVal = formatDisplayValue(val, sig.size);
-                                
-                                waveCtx.save();
-                                waveCtx.beginPath();
-                                waveCtx.rect(xStart + 4, yTop, xEnd - xStart - 8, waveHeight);
-                                waveCtx.clip();
-                                waveCtx.fillText(displayVal, xStart + (xEnd - xStart)/2, yMid);
-                                waveCtx.restore();
-                            }
                         } else {
-                            waveCtx.beginPath();
-                            waveCtx.moveTo(xStart, yTop); waveCtx.lineTo(xEnd, yTop);
-                            waveCtx.moveTo(xStart, yBottom); waveCtx.lineTo(xEnd, yBottom);
-                            waveCtx.stroke();
+                            if (isUnknown) { waveCtx.strokeStyle = theme.valX; waveCtx.fillStyle = theme.valXFill; } 
+                            else if (isHighZ) { waveCtx.strokeStyle = theme.valZ; waveCtx.fillStyle = 'transparent'; } 
+                            else { waveCtx.strokeStyle = theme.valBus; waveCtx.fillStyle = 'transparent'; }
+
+                            if (xEnd - xStart > 4) {
+                                waveCtx.beginPath();
+                                waveCtx.moveTo(xStart, yMid);
+                                waveCtx.lineTo(xStart + 3, yTop); waveCtx.lineTo(xEnd - 3, yTop);
+                                waveCtx.lineTo(xEnd, yMid);
+                                waveCtx.lineTo(xEnd - 3, yBottom); waveCtx.lineTo(xStart + 3, yBottom);
+                                waveCtx.closePath();
+                                
+                                if (isUnknown) waveCtx.fill();
+                                waveCtx.stroke();
+
+                                if (xEnd - xStart > 25) {
+                                    waveCtx.fillStyle = isUnknown ? theme.busTextX : theme.busTextVal;
+                                    let displayVal = formatDisplayValue(val, sig.size, sig.name);
+                                    
+                                    waveCtx.save();
+                                    waveCtx.beginPath();
+                                    waveCtx.rect(xStart + 4, yTop, xEnd - xStart - 8, waveHeight);
+                                    waveCtx.clip();
+                                    waveCtx.fillText(displayVal, xStart + (xEnd - xStart)/2, yMid);
+                                    waveCtx.restore();
+                                }
+                            } else {
+                                waveCtx.beginPath();
+                                waveCtx.moveTo(xStart, yTop); waveCtx.lineTo(xEnd, yTop);
+                                waveCtx.moveTo(xStart, yBottom); waveCtx.lineTo(xEnd, yBottom);
+                                waveCtx.stroke();
+                            }
                         }
                     }
                 }
@@ -1573,18 +1569,16 @@
                 exCtx.fillText(displayName, 38 + indent, rowY + rowHeight/2);
 
                 const val = getValueAtTime(item.signal, hoverTime);
-                const displayVal = formatDisplayValue(val, item.signal.size);
+                const displayVal = formatDisplayValue(val, item.signal.size, item.signal.name);
                 exCtx.fillStyle = isDarkMode ? '#3b82f6' : '#2563eb';
                 
                 let sVal = String(val).toLowerCase();
-                let nVal = String(item.signal.name).toLowerCase();
+                let nVal = shortName.toLowerCase();
 
-                if(sVal.includes('fail') || sVal === '3') exCtx.fillStyle = '#ef4444';
-                if(sVal.includes('pass') || sVal === '2') exCtx.fillStyle = '#10b981';
-                
-                if(sVal === '1') {
-                    if (nVal.includes('assert') && nVal.includes('fail')) exCtx.fillStyle = '#ef4444';
-                    if (nVal.includes('assert') && nVal.includes('pass')) exCtx.fillStyle = '#10b981';
+                if (nVal.includes('assert')) {
+                    if (sVal === '11' || sVal === '3' || (sVal === '1' && nVal.includes('fail'))) exCtx.fillStyle = '#ef4444';
+                    else if (sVal === '10' || sVal === '2' || (sVal === '1' && nVal.includes('pass'))) exCtx.fillStyle = '#10b981';
+                    else exCtx.fillStyle = isDarkMode ? '#64748b' : '#94a3b8';
                 }
 
                 exCtx.font = 'bold 11px "Fira Code"';
