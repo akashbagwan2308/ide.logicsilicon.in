@@ -34,7 +34,7 @@
         }
         
         #signal-list {
-            width: 240px; 
+            width: 240px;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
@@ -220,6 +220,12 @@
                 <span class="hidden sm:inline">Sync</span>
             </button>
 
+            <!-- New Hierarchy Button -->
+            <button onclick="openHierarchyModal()" class="px-2.5 h-[30px] sm:h-[34px] bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/60 border border-sky-200 dark:border-sky-800/80 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Browse Module Hierarchy">
+                <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span class="hidden lg:inline">Hierarchy</span>
+            </button>
+
             <button onclick="handleSmartUpload()" class="px-2.5 h-[30px] sm:h-[34px] bg-slate-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-[#334155] rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm" title="Upload Local VCD File">
                 <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span class="hidden sm:inline">Upload</span>
@@ -283,6 +289,11 @@
             <div class="signal-header text-[9px] font-bold text-slate-500 dark:text-slate-400 tracking-widest uppercase">
                 <div class="flex items-center gap-1.5">
                     <span>Signals</span>
+                    
+                    <button onclick="clearAllSignals(event)" class="w-4 h-4 rounded hover:bg-red-100 dark:hover:bg-red-900/30 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" title="Clear All Signals">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+
                     <button onclick="toggleFullPath(event)" id="btn-path-toggle" class="w-4 h-4 rounded hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors" title="Toggle Full Hierarchical Path">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                     </button>
@@ -309,7 +320,55 @@
         </div>
     </div>
 
-    <script>
+    <!-- Hierarchy Browser Modal -->
+    <div id="hierarchy-modal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm" onclick="closeHierarchyModal()">
+        <div class="bg-white dark:bg-[#1e293b] rounded-xl shadow-2xl w-[600px] max-h-[85vh] flex flex-col border border-slate-200 dark:border-slate-700" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-[#0f172a] rounded-t-xl">
+                <div>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Module Hierarchy Browser</h3>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Browse signals by scope. Double-click or click "Add" to append a signal to the canvas.</p>
+                </div>
+                <button onclick="closeHierarchyModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition bg-slate-200/50 dark:bg-slate-800 p-1.5 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="hierarchy-container" class="flex-1 overflow-y-auto p-4 bg-slate-50/50 dark:bg-slate-900/50 min-h-[350px] font-mono text-sm">
+                <!-- Tree rendered here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Search / Add Signal Modal -->
+    <div id="signal-search-modal" class="hidden fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm" onclick="closeSearchModal()">
+        <div class="bg-white dark:bg-[#1e293b] rounded-xl shadow-2xl w-[550px] max-h-[85vh] flex flex-col border border-slate-200 dark:border-slate-700" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-[#0f172a] rounded-t-xl">
+                <div>
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200">Search & Add Signals</h3>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Double-click a signal from the list below to add it instantly.</p>
+                </div>
+                <button onclick="closeSearchModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition bg-slate-200/50 dark:bg-slate-800 p-1.5 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
+                <input type="text" id="signal-search-input" onkeyup="filterSearchModal()" placeholder="Search signal names or paths (e.g., test.READY)..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono">
+            </div>
+            <div id="signal-search-results" class="flex-1 overflow-y-auto p-2 bg-slate-50/50 dark:bg-slate-900/50 min-h-[250px]">
+                <!-- Dynamic Search Results -->
+            </div>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-[#0f172a] rounded-b-xl shrink-0">
+                <button onclick="addAllSignalsToGroup()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition shadow-sm">
+                    Add ALL
+                </button>
+                <button onclick="addSearchedSignalsToGroup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add SEARCHED Only
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
         // --- 1. STATE & THEME MANAGEMENT ---
         let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
         
@@ -462,7 +521,7 @@
 
         window.onload = () => {
             initTheme();
-            autoLoadVCD(); // Attempt automatic load immediately
+            autoLoadVCD();
         };
 
         window.handleSmartUpload = async function() {
@@ -512,7 +571,7 @@
             
             reader.onload = function(e) {
                 const vcdContent = e.target.result;
-                currentFileHandle = null; // Clear handle if legacy fallback is used
+                currentFileHandle = null; 
                 processAndRenderVCD(vcdContent);
             };
 
@@ -530,6 +589,15 @@
                 btn.classList.remove('bg-indigo-100', 'dark:bg-indigo-900', 'text-indigo-600', 'dark:text-indigo-400');
             }
             initRenderer();
+        };
+
+        window.clearAllSignals = function(e) {
+            if (e) e.stopPropagation();
+            if (visibleSignals.length === 0) return;
+            if (confirm("Are you sure you want to remove all components from the viewer?")) {
+                visibleSignals = [];
+                initRenderer();
+            }
         };
 
         // --- 2. VCD PARSER ---
@@ -578,9 +646,9 @@
 
                 if (line.startsWith('#')) {
                     currentTime = parseInt(line.substring(1));
-                } else if (/^[01xzXZbB]/.test(line) || line.startsWith('s') || line.startsWith('S') || line.startsWith('r') || line.startsWith('R')) {
+                } else if (/^[01xzXZbB]/.test(line)) {
                     let valStr = ''; let id = '';
-                    if (line.startsWith('b') || line.startsWith('B') || line.startsWith('s') || line.startsWith('S') || line.startsWith('r') || line.startsWith('R')) {
+                    if (line.startsWith('b') || line.startsWith('B')) {
                         const parts = line.split(/\s+/);
                         valStr = parts[0].substring(1); id = parts[1];
                     } else {
@@ -687,7 +755,7 @@
                             <span class="text-slate-800 dark:text-indigo-200 truncate font-semibold text-xs" title="${sig.name}">${displayName}</span>
                         </div>
                         <div class="flex items-center gap-1 pointer-events-auto shrink-0">
-                            <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size, sig.name)} pointer-events-none">
+                            <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)} pointer-events-none">
                                 ${formatDisplayValue(initVal, sig.size)}
                             </div>
                             <button onclick="event.stopPropagation(); removeItem(${index})" class="remove-btn text-slate-400 hover:text-red-500 p-0.5" title="Hide Trace">
@@ -750,43 +818,28 @@
             }
         };
 
-        window.assignActiveGroup = function(groupId) {
-            const group = visibleSignals.find(i => i.type === 'group' && i.id === groupId);
-            const targetSigName = prompt(`Enter system signal name to attach inside Folder Group "${group.label}":`);
-            if(!targetSigName) return;
-
-            const sig = parsedData.signals.find(s => s.name.toLowerCase().endsWith(targetSigName.toLowerCase()));
-            if (sig) {
-                visibleSignals = visibleSignals.filter(item => !(item.type === 'signal' && item.signal === sig));
-                
-                const groupIndex = visibleSignals.indexOf(group);
-                visibleSignals.splice(groupIndex + 1, 0, { type: 'signal', signal: sig, parentGroupId: groupId });
-                initRenderer();
-            } else {
-                alert(`Signal "${targetSigName}" was not found inside trace definitions list.`);
-            }
-        };
-
         window.showAddSignalMenu = function(e) {
             e.stopPropagation();
             const menu = document.getElementById('add-signal-menu');
             menu.innerHTML = '';
             
             let dBtn = document.createElement('button');
-            dBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800';
+            dBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800 transition-colors';
             dBtn.innerText = '+ Add Section Divider';
             dBtn.onclick = () => {
                 let lbl = prompt("Enter Section Divider text label name:");
                 if(lbl) { visibleSignals.push({ type: 'divider', id: 'div_' + Date.now(), label: lbl }); initRenderer(); }
+                hideAddSignalMenu();
             };
             menu.appendChild(dBtn);
 
             let gBtn = document.createElement('button');
-            gBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800';
+            gBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-indigo-500 border-b border-slate-100 dark:border-slate-800 transition-colors';
             gBtn.innerText = '+ Create Folder Group';
             gBtn.onclick = () => {
                 let lbl = prompt("Enter Folder Group name:");
                 if(lbl) { visibleSignals.push({ type: 'group', id: 'grp_' + Date.now(), label: lbl, collapsed: false }); initRenderer(); }
+                hideAddSignalMenu();
             };
             menu.appendChild(gBtn);
 
@@ -819,18 +872,12 @@
         }
 
         function formatDisplayValue(val, size) {
-            let strVal = String(val);
-            if (strVal.length > 1 && !/^[01xz]+$/i.test(strVal)) {
-                if (strVal === '2' || strVal.toLowerCase() === 'pass') return 'PASS';
-                if (strVal === '3' || strVal.toLowerCase() === 'fail') return 'FAIL';
-                return strVal;
-            }
-            if (strVal.toLowerCase().includes('x')) return 'X';
-            if (strVal.toLowerCase().includes('z')) return 'Z';
-            if (size === 1) return strVal;
+            if (val.toLowerCase().includes('x')) return 'X';
+            if (val.toLowerCase().includes('z')) return 'Z';
+            if (size === 1) return val;
             
-            if (/^[01]+$/.test(strVal)) {
-                let paddedVal = strVal.padStart(size, '0');
+            if (/^[01]+$/.test(val)) {
+                let paddedVal = val.padStart(size, '0');
 
                 if (globalRadix === 'hex') {
                     let hexChars = Math.ceil(size / 4);
@@ -848,24 +895,14 @@
                     return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
                 }
             }
-            return strVal;
+            return val;
         }
 
-        function getValueClass(val, size, name = '') {
-            let sVal = String(val).toLowerCase();
-            let nVal = String(name).toLowerCase();
-            
-            if (sVal.includes('fail') || sVal === '3') return 'val-x'; 
-            if (sVal.includes('pass') || sVal === '2') return 'val-1';
-            if (sVal.includes('x')) return 'val-x';
-            if (sVal.includes('z')) return 'val-z';
-            if (size > 1 || sVal.length > 1) return 'val-bus';
-            
-            if (sVal === '1') {
-                if (nVal.includes('assert') && nVal.includes('fail')) return 'val-x';
-                if (nVal.includes('assert') && nVal.includes('pass')) return 'val-1';
-                return 'val-1';
-            }
+        function getValueClass(val, size) {
+            if (val.toLowerCase().includes('x')) return 'val-x';
+            if (val.toLowerCase().includes('z')) return 'val-z';
+            if (size > 1) return 'val-bus';
+            if (val === '1') return 'val-1';
             return 'val-0';
         }
 
@@ -884,7 +921,7 @@
             const resizer = document.getElementById('sidebar-resizer');
             const sidebar = document.getElementById('signal-list');
             
-            if (!resizer) return; // guard if already setup
+            if (!resizer) return;
             let isResizing = false;
 
             resizer.addEventListener('mousedown', (e) => {
@@ -967,7 +1004,7 @@
                 const badge = document.getElementById(`val-badge-${index}`);
                 if (badge) {
                     badge.innerText = formatDisplayValue(val, item.signal.size);
-                    badge.className = `sig-val ${getValueClass(val, item.signal.size, item.signal.name)} pointer-events-none`;
+                    badge.className = `sig-val ${getValueClass(val, item.signal.size)} pointer-events-none`;
                 }
             });
         }
@@ -1156,17 +1193,14 @@
                     const isHighZ = String(val).toLowerCase().includes('z');
 
                     if (sig.size === 1 && String(val).length === 1) {
-                        let yLine;
                         let sigName = sig.name.toLowerCase();
                         let isPassSignal = sigName.includes('assert') && sigName.includes('pass');
                         let isFailSignal = sigName.includes('assert') && sigName.includes('fail');
 
                         if (isPassSignal || isFailSignal) {
-                            // DEDICATED ASSERTION ARROW RENDERER
+                            // PURE EVENT-TRACK MODE (NO BASELINE LINES)
                             if (val === '1') {
-                                // Calculate horizontal center of the pulse for the arrow
                                 let midX = xStart + (xEnd - xStart) / 2;
-                                // If pulse is artificially stretched wide, cap the arrow near the start edge
                                 if (xEnd - xStart > 12) midX = xStart + 6; 
 
                                 waveCtx.lineWidth = 2.0;
@@ -1180,34 +1214,10 @@
                                     waveCtx.beginPath(); waveCtx.moveTo(midX, yTop); waveCtx.lineTo(midX, yBottom - 3); waveCtx.stroke();
                                     waveCtx.beginPath(); waveCtx.moveTo(midX - 4, yBottom - 5); waveCtx.lineTo(midX + 4, yBottom - 5); waveCtx.lineTo(midX, yBottom + 1); waveCtx.fill();
                                 }
-                            } 
-                            else if (val === '0') { 
-                                // INTENTIONALLY BLANK: No baseline for '0'
-                            } 
-                            else if (isUnknown) { 
-                                yLine = yMid; waveCtx.strokeStyle = theme.valX; waveCtx.fillStyle = theme.valXFill;
-                                waveCtx.fillRect(xStart, yTop, xEnd - xStart, waveHeight);
-                                waveCtx.beginPath(); waveCtx.moveTo(xStart, yLine); waveCtx.lineTo(xEnd, yLine); waveCtx.stroke();
-                            } 
-                            else { 
-                                yLine = yMid; waveCtx.strokeStyle = theme.valZ; 
-                                waveCtx.beginPath(); waveCtx.moveTo(xStart, yLine); waveCtx.lineTo(xEnd, yLine); waveCtx.stroke();
                             }
-
-                            // Only draw edge lines for X and Z transitions in arrow mode, skip '1' to avoid drawing pulse walls
-                            if (i > 0) {
-                                const prevVal = sig.transitions[i-1].val;
-                                if (prevVal !== val && trans.time > 0 && prevVal !== '1' && val !== '1') {
-                                    let prevYLine = prevVal === '0' ? yBottom : yMid;
-                                    waveCtx.beginPath();
-                                    waveCtx.strokeStyle = (val === 'x' || prevVal === 'x') ? theme.valX : theme.val0;
-                                    waveCtx.moveTo(xStart, prevYLine); waveCtx.lineTo(xStart, yLine);
-                                    waveCtx.stroke();
-                                }
-                            }
-
                         } else {
-                            // STANDARD SIGNAL PULSE RENDERER
+                            // STANDARD SIGNAL PULSE RENDERER WITH FIXED EDGE COLORING
+                            let yLine;
                             if (val === '1') { 
                                 yLine = yTop; waveCtx.strokeStyle = theme.val1; waveCtx.fillStyle = theme.val1Fill;
                                 waveCtx.fillRect(xStart, yTop, xEnd - xStart, waveHeight);
@@ -1229,7 +1239,7 @@
                                     let prevYLine = prevVal === '1' ? yTop : (prevVal === '0' ? yBottom : yMid);
                                     waveCtx.beginPath();
                                     
-                                    // Edge color inheritance logic (fixes your previous edge color issue)
+                                    // Robust edge color inheritance for both rising and falling walls
                                     if (val === '1' || prevVal === '1') waveCtx.strokeStyle = theme.val1;
                                     else if (val === 'x' || prevVal === 'x') waveCtx.strokeStyle = theme.valX;
                                     else waveCtx.strokeStyle = theme.val0;
@@ -1245,7 +1255,7 @@
                         let isAssertionFail = displayValStr.includes('fail') || displayValStr === '3' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('fail'));
                         let isAssertionPass = displayValStr.includes('pass') || displayValStr === '2' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('pass'));
 
-                        if (isAssertionFail) { waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = 'rgba(239, 68, 68, 0.2)'; } 
+                        if (isAssertionFail) { waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = 'rgba(239, 68, 68, 0.2);'; } 
                         else if (isAssertionPass) { waveCtx.strokeStyle = '#10b981'; waveCtx.fillStyle = 'rgba(16, 185, 129, 0.2)'; }
                         else if (isUnknown) { waveCtx.strokeStyle = theme.valX; waveCtx.fillStyle = theme.valXFill; } 
                         else if (isHighZ) { waveCtx.strokeStyle = theme.valZ; waveCtx.fillStyle = 'transparent'; } 
