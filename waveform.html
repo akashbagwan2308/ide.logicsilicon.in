@@ -34,7 +34,7 @@
         }
         
         #signal-list {
-            width: 240px;
+            width: 240px; 
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
@@ -357,18 +357,15 @@
                 <!-- Dynamic Search Results -->
             </div>
             <div class="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-[#0f172a] rounded-b-xl shrink-0">
-                <button onclick="addAllSignalsToGroup()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition shadow-sm">
-                    Add ALL
-                </button>
                 <button onclick="addSearchedSignalsToGroup()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition shadow-sm flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Add SEARCHED Only
+                    Add All Matches
                 </button>
             </div>
         </div>
     </div>
 
-<script>
+    <script>
         // --- 1. STATE & THEME MANAGEMENT ---
         let parsedData = { signals: [], maxTime: 0, timescale: '1s' };
         
@@ -392,7 +389,8 @@
         let globalRadix = 'hex'; 
         let showFullPath = false;
 
-        let currentFileHandle = null;
+        let targetGroupIdForSearch = null; // null indicates appending directly to the root canvas level
+        let currentFileHandle = null; // Stores the local file reference for Smart Sync
 
         const waveCanvas = document.getElementById('wave-canvas');
         const cursorCanvas = document.getElementById('cursor-canvas');
@@ -521,7 +519,7 @@
 
         window.onload = () => {
             initTheme();
-            autoLoadVCD();
+            autoLoadVCD(); // Attempt automatic load immediately
         };
 
         window.handleSmartUpload = async function() {
@@ -571,7 +569,7 @@
             
             reader.onload = function(e) {
                 const vcdContent = e.target.result;
-                currentFileHandle = null; 
+                currentFileHandle = null; // Clear handle if legacy fallback is used
                 processAndRenderVCD(vcdContent);
             };
 
@@ -646,9 +644,9 @@
 
                 if (line.startsWith('#')) {
                     currentTime = parseInt(line.substring(1));
-                } else if (/^[01xzXZbB]/.test(line)) {
+                } else if (/^[01xzXZbB]/.test(line) || line.startsWith('s') || line.startsWith('S') || line.startsWith('r') || line.startsWith('R')) {
                     let valStr = ''; let id = '';
-                    if (line.startsWith('b') || line.startsWith('B')) {
+                    if (line.startsWith('b') || line.startsWith('B') || line.startsWith('s') || line.startsWith('S') || line.startsWith('r') || line.startsWith('R')) {
                         const parts = line.split(/\s+/);
                         valStr = parts[0].substring(1); id = parts[1];
                     } else {
@@ -755,7 +753,7 @@
                             <span class="text-slate-800 dark:text-indigo-200 truncate font-semibold text-xs" title="${sig.name}">${displayName}</span>
                         </div>
                         <div class="flex items-center gap-1 pointer-events-auto shrink-0">
-                            <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size)} pointer-events-none">
+                            <div id="val-badge-${index}" class="sig-val ${getValueClass(initVal, sig.size, sig.name)} pointer-events-none">
                                 ${formatDisplayValue(initVal, sig.size)}
                             </div>
                             <button onclick="event.stopPropagation(); removeItem(${index})" class="remove-btn text-slate-400 hover:text-red-500 p-0.5" title="Hide Trace">
@@ -818,6 +816,191 @@
             }
         };
 
+        // --- HIERARCHY BROWSER LOGIC ---
+        function buildHierarchyTree() {
+            let tree = { _isModule: true, _signals: [] };
+            parsedData.signals.forEach(sig => {
+                let parts = sig.name.split('.');
+                let currentLevel = tree;
+                
+                for (let i = 0; i < parts.length - 1; i++) {
+                    let part = parts[i];
+                    if (!currentLevel[part]) currentLevel[part] = { _isModule: true, _signals: [] };
+                    currentLevel = currentLevel[part];
+                }
+                currentLevel._signals.push(sig);
+            });
+            return tree;
+        }
+
+        function renderHierarchyNode(node, container) {
+            // Render sub-modules first
+            const keys = Object.keys(node).filter(k => k !== '_isModule' && k !== '_signals').sort();
+            keys.forEach(moduleName => {
+                const subNode = node[moduleName];
+                const folderDiv = document.createElement('div');
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-center gap-1.5 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 px-2 py-1.5 rounded-lg font-bold text-sky-600 dark:text-sky-400 select-none transition-colors mb-0.5';
+                
+                const iconSpan = document.createElement('span');
+                iconSpan.className = 'text-[10px] w-4 text-center transition-transform text-slate-400 dark:text-slate-500';
+                iconSpan.innerText = '▼';
+                
+                const textSpan = document.createElement('span');
+                textSpan.innerHTML = `📦 ${moduleName}`;
+                
+                headerDiv.appendChild(iconSpan);
+                headerDiv.appendChild(textSpan);
+                
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'ml-3 border-l border-slate-200 dark:border-slate-700 pl-3 mt-1 mb-2';
+                
+                headerDiv.onclick = () => {
+                    const isHidden = childrenContainer.classList.contains('hidden');
+                    if (isHidden) {
+                        childrenContainer.classList.remove('hidden');
+                        iconSpan.innerText = '▼';
+                    } else {
+                        childrenContainer.classList.add('hidden');
+                        iconSpan.innerText = '►';
+                    }
+                };
+
+                folderDiv.appendChild(headerDiv);
+                renderHierarchyNode(subNode, childrenContainer);
+                folderDiv.appendChild(childrenContainer);
+                container.appendChild(folderDiv);
+            });
+
+            // Then render signals in this scope
+            if (node._signals && node._signals.length > 0) {
+                node._signals.sort((a,b) => a.name.localeCompare(b.name)).forEach(sig => {
+                    const shortName = sig.name.split('.').pop();
+                    const sigDiv = document.createElement('div');
+                    sigDiv.className = 'py-1 px-2 flex items-center justify-between hover:bg-emerald-50 dark:hover:bg-emerald-900/30 cursor-pointer rounded-lg text-slate-700 dark:text-slate-300 select-none transition-colors mb-0.5 group border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800';
+                    sigDiv.title = "Double-click to append to canvas";
+                    
+                    sigDiv.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400 dark:text-slate-500 text-[10px] bg-slate-100 dark:bg-slate-800 px-1 rounded">[${sig.size}]</span>
+                            <span class="group-hover:text-emerald-600 dark:group-hover:text-emerald-400 text-sm">${shortName}</span>
+                        </div>
+                        <button class="opacity-0 group-hover:opacity-100 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-700 text-emerald-700 dark:text-emerald-300 rounded text-[10px] font-bold transition-colors">Add</button>
+                    `;
+                    
+                    // Add via double click
+                    sigDiv.ondblclick = (e) => {
+                        e.stopPropagation();
+                        appendSignalsToGroupList([sig], null);
+                    };
+                    
+                    // Add via explicit button click
+                    const addBtn = sigDiv.querySelector('button');
+                    addBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        appendSignalsToGroupList([sig], null);
+                    };
+
+                    container.appendChild(sigDiv);
+                });
+            }
+        }
+
+        window.openHierarchyModal = function() {
+            const container = document.getElementById('hierarchy-container');
+            container.innerHTML = '';
+            
+            if (parsedData.signals.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-slate-500 dark:text-slate-400">No hierarchy to display. Please load a valid VCD first.</div>`;
+            } else {
+                const tree = buildHierarchyTree();
+                renderHierarchyNode(tree, container);
+            }
+            
+            document.getElementById('hierarchy-modal').classList.remove('hidden');
+        };
+
+        window.closeHierarchyModal = function() {
+            document.getElementById('hierarchy-modal').classList.add('hidden');
+        };
+
+        // --- NEW MODAL LOGIC FOR SIGNAL SEARCH & ADD ---
+        window.assignActiveGroup = function(groupId) {
+            targetGroupIdForSearch = groupId; // Set specific group id context
+            document.getElementById('signal-search-input').value = '';
+            document.getElementById('signal-search-modal').classList.remove('hidden');
+            filterSearchModal();
+            setTimeout(() => document.getElementById('signal-search-input').focus(), 50);
+        };
+
+        window.closeSearchModal = function() {
+            document.getElementById('signal-search-modal').classList.add('hidden');
+            targetGroupIdForSearch = null;
+        };
+
+        window.filterSearchModal = function() {
+            const query = document.getElementById('signal-search-input').value.toLowerCase();
+            const resultsContainer = document.getElementById('signal-search-results');
+            resultsContainer.innerHTML = '';
+
+            const filtered = parsedData.signals.filter(s => s.name.toLowerCase().includes(query));
+            
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = `<div class="p-4 text-center text-slate-500 dark:text-slate-400 text-sm">No signals found matching "${query}".</div>`;
+                return;
+            }
+
+            filtered.forEach(sig => {
+                const div = document.createElement('div');
+                div.className = 'px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer rounded-lg border border-transparent hover:border-indigo-100 dark:hover:border-indigo-800 text-sm text-slate-700 dark:text-slate-300 font-mono truncate select-none transition-colors mb-0.5';
+                div.innerText = sig.name;
+                div.title = "Double-click to append this signal";
+                div.ondblclick = () => {
+                    appendSignalsToGroupList([sig], targetGroupIdForSearch);
+                };
+                resultsContainer.appendChild(div);
+            });
+        };
+
+        function appendSignalsToGroupList(signalsArr, groupId) {
+            // Filter out existing duplicates from anywhere in the tree to prevent dual tracking
+            visibleSignals = visibleSignals.filter(item => {
+                if(item.type === 'signal' && signalsArr.includes(item.signal)) return false;
+                return true;
+            });
+            
+            if (groupId) {
+                const groupIndex = visibleSignals.findIndex(i => i.type === 'group' && i.id === groupId);
+                if (groupIndex !== -1) {
+                    const newItems = signalsArr.map(sig => ({ type: 'signal', signal: sig, parentGroupId: groupId }));
+                    
+                    // Find insertion index at the end of the current group
+                    let insertIdx = groupIndex + 1;
+                    while (insertIdx < visibleSignals.length && visibleSignals[insertIdx].parentGroupId === groupId) {
+                        insertIdx++;
+                    }
+                    visibleSignals.splice(insertIdx, 0, ...newItems);
+                }
+            } else {
+                // No group provided - append to root level
+                const newItems = signalsArr.map(sig => ({ type: 'signal', signal: sig, parentGroupId: null }));
+                visibleSignals.push(...newItems);
+            }
+            initRenderer();
+        }
+
+        window.addSearchedSignalsToGroup = function() {
+            const query = document.getElementById('signal-search-input').value.toLowerCase();
+            let toAdd = parsedData.signals;
+            if (query.trim() !== '') {
+                toAdd = parsedData.signals.filter(s => s.name.toLowerCase().includes(query));
+            }
+            // Append only filtered matches (respecting current group/root context)
+            appendSignalsToGroupList(toAdd, targetGroupIdForSearch);
+            closeSearchModal();
+        };
+
         window.showAddSignalMenu = function(e) {
             e.stopPropagation();
             const menu = document.getElementById('add-signal-menu');
@@ -843,19 +1026,18 @@
             };
             menu.appendChild(gBtn);
 
-            parsedData.signals.forEach(sig => {
-                const isMapped = visibleSignals.some(item => item.type === 'signal' && item.signal === sig);
-                if (!isMapped) {
-                    const btn = document.createElement('button');
-                    btn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-[11px] text-slate-700 dark:text-slate-200 truncate font-mono';
-                    btn.innerText = `sig: ${sig.name.split('.').pop()}`;
-                    btn.onclick = () => {
-                        visibleSignals.push({ type: 'signal', signal: sig, parentGroupId: null });
-                        initRenderer();
-                    };
-                    menu.appendChild(btn);
-                }
-            });
+            let sBtn = document.createElement('button');
+            sBtn.className = 'block w-full text-left px-4 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 transition-colors';
+            sBtn.innerText = '🔍 Search & Add Signals';
+            sBtn.onclick = () => {
+                targetGroupIdForSearch = null; // null sets context to the root canvas level
+                document.getElementById('signal-search-input').value = '';
+                document.getElementById('signal-search-modal').classList.remove('hidden');
+                filterSearchModal();
+                setTimeout(() => document.getElementById('signal-search-input').focus(), 50); // slight delay ensures modal renders before grabbing focus
+                hideAddSignalMenu();
+            };
+            menu.appendChild(sBtn);
 
             menu.classList.remove('hidden');
         };
@@ -872,12 +1054,18 @@
         }
 
         function formatDisplayValue(val, size) {
-            if (val.toLowerCase().includes('x')) return 'X';
-            if (val.toLowerCase().includes('z')) return 'Z';
-            if (size === 1) return val;
+            let strVal = String(val);
+            if (strVal.length > 1 && !/^[01xz]+$/i.test(strVal)) {
+                if (strVal === '2' || strVal.toLowerCase() === 'pass') return 'PASS';
+                if (strVal === '3' || strVal.toLowerCase() === 'fail') return 'FAIL';
+                return strVal;
+            }
+            if (strVal.toLowerCase().includes('x')) return 'X';
+            if (strVal.toLowerCase().includes('z')) return 'Z';
+            if (size === 1) return strVal;
             
-            if (/^[01]+$/.test(val)) {
-                let paddedVal = val.padStart(size, '0');
+            if (/^[01]+$/.test(strVal)) {
+                let paddedVal = strVal.padStart(size, '0');
 
                 if (globalRadix === 'hex') {
                     let hexChars = Math.ceil(size / 4);
@@ -895,14 +1083,24 @@
                     return 'o' + parseInt(paddedVal, 2).toString(8).padStart(octChars, '0');
                 }
             }
-            return val;
+            return strVal;
         }
 
-        function getValueClass(val, size) {
-            if (val.toLowerCase().includes('x')) return 'val-x';
-            if (val.toLowerCase().includes('z')) return 'val-z';
-            if (size > 1) return 'val-bus';
-            if (val === '1') return 'val-1';
+        function getValueClass(val, size, name = '') {
+            let sVal = String(val).toLowerCase();
+            let nVal = String(name).toLowerCase();
+            
+            if (sVal.includes('fail') || sVal === '3') return 'val-x'; 
+            if (sVal.includes('pass') || sVal === '2') return 'val-1';
+            if (sVal.includes('x')) return 'val-x';
+            if (sVal.includes('z')) return 'val-z';
+            if (size > 1 || sVal.length > 1) return 'val-bus';
+            
+            if (sVal === '1') {
+                if (nVal.includes('assert') && nVal.includes('fail')) return 'val-x';
+                if (nVal.includes('assert') && nVal.includes('pass')) return 'val-1';
+                return 'val-1';
+            }
             return 'val-0';
         }
 
@@ -921,7 +1119,7 @@
             const resizer = document.getElementById('sidebar-resizer');
             const sidebar = document.getElementById('signal-list');
             
-            if (!resizer) return;
+            if (!resizer) return; // guard if already setup
             let isResizing = false;
 
             resizer.addEventListener('mousedown', (e) => {
@@ -1004,7 +1202,7 @@
                 const badge = document.getElementById(`val-badge-${index}`);
                 if (badge) {
                     badge.innerText = formatDisplayValue(val, item.signal.size);
-                    badge.className = `sig-val ${getValueClass(val, item.signal.size)} pointer-events-none`;
+                    badge.className = `sig-val ${getValueClass(val, item.signal.size, item.signal.name)} pointer-events-none`;
                 }
             });
         }
@@ -1193,6 +1391,7 @@
                     const isHighZ = String(val).toLowerCase().includes('z');
 
                     if (sig.size === 1 && String(val).length === 1) {
+                        let yLine;
                         let sigName = sig.name.toLowerCase();
                         let isPassSignal = sigName.includes('assert') && sigName.includes('pass');
                         let isFailSignal = sigName.includes('assert') && sigName.includes('fail');
@@ -1217,7 +1416,6 @@
                             }
                         } else {
                             // STANDARD SIGNAL PULSE RENDERER WITH FIXED EDGE COLORING
-                            let yLine;
                             if (val === '1') { 
                                 yLine = yTop; waveCtx.strokeStyle = theme.val1; waveCtx.fillStyle = theme.val1Fill;
                                 waveCtx.fillRect(xStart, yTop, xEnd - xStart, waveHeight);
@@ -1255,7 +1453,7 @@
                         let isAssertionFail = displayValStr.includes('fail') || displayValStr === '3' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('fail'));
                         let isAssertionPass = displayValStr.includes('pass') || displayValStr === '2' || (displayValStr === '1' && sigName.includes('assert') && sigName.includes('pass'));
 
-                        if (isAssertionFail) { waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = 'rgba(239, 68, 68, 0.2);'; } 
+                        if (isAssertionFail) { waveCtx.strokeStyle = '#ef4444'; waveCtx.fillStyle = 'rgba(239, 68, 68, 0.2)'; } 
                         else if (isAssertionPass) { waveCtx.strokeStyle = '#10b981'; waveCtx.fillStyle = 'rgba(16, 185, 129, 0.2)'; }
                         else if (isUnknown) { waveCtx.strokeStyle = theme.valX; waveCtx.fillStyle = theme.valXFill; } 
                         else if (isHighZ) { waveCtx.strokeStyle = theme.valZ; waveCtx.fillStyle = 'transparent'; } 
